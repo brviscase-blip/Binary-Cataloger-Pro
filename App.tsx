@@ -173,7 +173,7 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 20) break; // Pegamos mais para o histórico
+      if (detected.length >= 25) break; // Pegamos mais para permitir cálculo retrospectivo de assertividade
     }
 
     return detected.reverse();
@@ -194,15 +194,15 @@ const App: React.FC = () => {
     };
   }, [displayPatterns]);
 
-  // Lógica de Histórico de Performance (Badges WIN/LOSS)
+  // Lógica de Histórico de Performance (WIN/LOSS baseado nos sinais)
   const performanceHistory = useMemo(() => {
     const outcomes: SignalOutcome[] = [];
     if (displayPatterns.length < 11) return outcomes;
 
-    // Analisamos os últimos padrões para ver se houve sinal gerado no passo anterior
+    // Analisamos cronologicamente de trás para frente para pegar os 5 resultados mais recentes
     for (let i = displayPatterns.length - 1; i >= 10; i--) {
-      const currentPattern = displayPatterns[i];
-      const previousWindow = displayPatterns.slice(i - 10, i);
+      const currentPattern = displayPatterns[i]; // Resultado atual
+      const previousWindow = displayPatterns.slice(i - 10, i); // Janela que gerou o sinal
       
       const azulPrev = previousWindow.filter(p => p.type === 'AZUL').length;
       const rosaPrev = previousWindow.filter(p => p.type === 'ROSA').length;
@@ -212,8 +212,8 @@ const App: React.FC = () => {
 
       // Regra 5x5
       if (azulPrev === 5 && rosaPrev === 5) {
-        const firstInWindow = previousWindow[0];
-        target = firstInWindow.type === 'AZUL' ? 'ROSA' : 'AZUL';
+        const referencePattern = previousWindow[0]; // Extrema esquerda do bloco
+        target = referencePattern.type === 'AZUL' ? 'ROSA' : 'AZUL';
         sName = '5x5';
       } 
       // Regra Desequilíbrio
@@ -240,15 +240,19 @@ const App: React.FC = () => {
     return outcomes;
   }, [displayPatterns]);
 
-  const winCountHistory = useMemo(() => performanceHistory.filter(o => o.type === 'WIN').length, [performanceHistory]);
-  const winRateHistory = useMemo(() => performanceHistory.length > 0 ? ((winCountHistory / performanceHistory.length) * 100).toFixed(0) : '0', [winCountHistory, performanceHistory]);
+  const winRateHistory = useMemo(() => {
+    if (performanceHistory.length === 0) return '0';
+    const wins = performanceHistory.filter(o => o.type === 'WIN').length;
+    return ((wins / performanceHistory.length) * 100).toFixed(0);
+  }, [performanceHistory]);
 
   const entrySignal = useMemo(() => {
     const { azul, rosa, total } = patternCounts;
     if (total < 10) return null;
 
     if (azul === 5 && rosa === 5) {
-      const referencePattern = displayPatterns[displayPatterns.length - 10]; 
+      const activeSet = displayPatterns.slice(-10);
+      const referencePattern = activeSet[0]; 
       const target = (referencePattern.type === 'AZUL' ? 'ROSA' : 'AZUL') as 'AZUL' | 'ROSA';
       return {
         target,
@@ -279,10 +283,10 @@ const App: React.FC = () => {
   }, [patternCounts, displayPatterns]);
 
   const cycleData = useMemo(() => {
-    const patternsToCycle = displayPatterns.slice(-10);
-    if (patternsToCycle.length === 0) return { type: null, streak: [] };
+    const activeSet = displayPatterns.slice(-10);
+    if (activeSet.length === 0) return { type: null, streak: [] };
     
-    const patterns = [...patternsToCycle].reverse(); 
+    const patterns = [...activeSet].reverse(); 
     const latestType = patterns[0].type;
     const streak: PatternResult[] = [];
 
@@ -391,8 +395,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="hidden sm:block"></div>
-
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white/[0.03] rounded-lg border border-white/5">
             <Clock size={14} className="text-blue-500" />
@@ -474,7 +476,6 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* Indicador de Sinal Ativo */}
                   {entrySignal && (
                     <div className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border animate-pulse shadow-lg ${entrySignal.target === 'AZUL' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-pink-500/20 border-pink-500/40 text-pink-400'}`}>
                       {entrySignal.icon}
@@ -526,7 +527,6 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-              {/* Monitoramento de Ciclo (50%) com Formato de Funil */}
               <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 relative bg-[#090d16]/50">
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
                    <div className="flex items-center gap-3">
@@ -587,61 +587,58 @@ const App: React.FC = () => {
                      );
                    })}
                 </div>
-
-                {cycleData.streak.length >= 7 && (
-                  <div className="absolute bottom-2 left-4 right-4 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 animate-pulse">
-                     <AlertTriangle size={14} className="text-red-500 shrink-0" />
-                     <p className="text-[8px] font-black text-red-500 uppercase leading-tight">Alerta de Exaustão</p>
-                  </div>
-                )}
               </div>
 
-              {/* Novo Módulo de Performance de Sinais */}
-              <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 bg-[#090d16]/30">
+              {/* Módulo de Performance de Sinais */}
+              <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 bg-[#090d16]/40">
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
                    <div className="flex items-center gap-3">
                       <History size={18} className="text-blue-500" />
                       <div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-white">Assertividade</h3>
-                        <p className="text-[9px] font-bold text-slate-500 uppercase">Histórico Recente</p>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">Histórico de Performance</p>
                       </div>
                    </div>
                    <div className="flex flex-col items-end">
-                      <span className="text-lg font-black text-white leading-none">{winRateHistory}%</span>
+                      <span className={`text-lg font-black leading-none ${Number(winRateHistory) > 70 ? 'text-emerald-400' : 'text-white'}`}>{winRateHistory}%</span>
                       <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Últimos 5</span>
                    </div>
                 </div>
 
-                <div className="p-6 flex flex-col gap-3 flex-1 justify-center">
+                <div className="p-4 flex flex-col gap-2.5 flex-1">
                   {performanceHistory.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {performanceHistory.map((outcome) => (
-                        <div key={outcome.id} className="flex items-center justify-between bg-black/20 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-all">
+                        <div key={outcome.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-all group">
                            <div className="flex items-center gap-3">
-                              <div className={`w-1.5 h-6 rounded-full ${outcome.type === 'WIN' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]'}`} />
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' : 'bg-pink-500/10 text-pink-400 border-pink-500/20 shadow-[0_0_10px_rgba(236,72,153,0.1)]'}`}>
+                                {outcome.type.slice(0,1)}
+                              </div>
                               <div className="flex flex-col">
-                                <span className={`text-[11px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-pink-400'}`}>
-                                  {outcome.type}
+                                <span className={`text-[11px] font-black tracking-tight ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-pink-400'}`}>
+                                  {outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-600 uppercase tabular-nums">Sinal: {outcome.signalName}</span>
                               </div>
                            </div>
-                           <span className="text-[9px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</span>
+                           <div className="text-right">
+                              <p className="text-[9px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</p>
+                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center opacity-20 py-8">
-                       <Target size={24} className="mb-2" />
-                       <span className="text-[9px] font-black uppercase tracking-[0.2em]">Aguardando Sinais</span>
+                    <div className="flex flex-col items-center justify-center opacity-20 flex-1">
+                       <Target size={32} className="mb-2 text-slate-700" />
+                       <span className="text-[9px] font-black uppercase tracking-[0.2em]">Sincronizando Histórico...</span>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-auto px-6 py-3 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
+                <div className="mt-auto px-6 py-3 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
                    <div className="flex gap-1.5">
                       {performanceHistory.map((o) => (
-                        <div key={`dot-${o.id}`} className={`w-1.5 h-1.5 rounded-full ${o.type === 'WIN' ? 'bg-emerald-500' : 'bg-pink-500'}`} />
+                        <div key={`dot-${o.id}`} className={`w-1.5 h-1.5 rounded-full ${o.type === 'WIN' ? 'bg-emerald-500' : 'bg-pink-500'} shadow-sm`} />
                       ))}
                    </div>
                    <Trophy size={14} className="text-slate-700" />
