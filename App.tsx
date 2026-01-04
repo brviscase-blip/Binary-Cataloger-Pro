@@ -173,7 +173,7 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 25) break; // Pegamos mais para permitir cálculo retrospectivo de assertividade
+      if (detected.length >= 25) break; 
     }
 
     return detected.reverse();
@@ -199,10 +199,9 @@ const App: React.FC = () => {
     const outcomes: SignalOutcome[] = [];
     if (displayPatterns.length < 11) return outcomes;
 
-    // Analisamos cronologicamente de trás para frente para pegar os 5 resultados mais recentes
     for (let i = displayPatterns.length - 1; i >= 10; i--) {
-      const currentPattern = displayPatterns[i]; // Resultado atual
-      const previousWindow = displayPatterns.slice(i - 10, i); // Janela que gerou o sinal
+      const currentPattern = displayPatterns[i]; 
+      const previousWindow = displayPatterns.slice(i - 10, i); 
       
       const azulPrev = previousWindow.filter(p => p.type === 'AZUL').length;
       const rosaPrev = previousWindow.filter(p => p.type === 'ROSA').length;
@@ -210,13 +209,11 @@ const App: React.FC = () => {
       let target: 'AZUL' | 'ROSA' | null = null;
       let sName = '';
 
-      // Regra 5x5
       if (azulPrev === 5 && rosaPrev === 5) {
-        const referencePattern = previousWindow[0]; // Extrema esquerda do bloco
+        const referencePattern = previousWindow[0]; 
         target = referencePattern.type === 'AZUL' ? 'ROSA' : 'AZUL';
         sName = '5x5';
       } 
-      // Regra Desequilíbrio
       else if (rosaPrev >= 7) {
         target = 'AZUL';
         sName = `${rosaPrev}x${azulPrev}`;
@@ -611,11 +608,12 @@ const App: React.FC = () => {
                       {performanceHistory.map((outcome) => (
                         <div key={outcome.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-all group">
                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' : 'bg-pink-500/10 text-pink-400 border-pink-500/20 shadow-[0_0_10px_rgba(236,72,153,0.1)]'}`}>
+                              {/* Removido o efeito de glow/sombra (shadow-[...]) conforme solicitado */}
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                                 {outcome.type.slice(0,1)}
                               </div>
                               <div className="flex flex-col">
-                                <span className={`text-[11px] font-black tracking-tight ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-pink-400'}`}>
+                                <span className={`text-[11px] font-black tracking-tight ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
                                   {outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-600 uppercase tabular-nums">Sinal: {outcome.signalName}</span>
@@ -638,7 +636,7 @@ const App: React.FC = () => {
                 <div className="mt-auto px-6 py-3 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
                    <div className="flex gap-1.5">
                       {performanceHistory.map((o) => (
-                        <div key={`dot-${o.id}`} className={`w-1.5 h-1.5 rounded-full ${o.type === 'WIN' ? 'bg-emerald-500' : 'bg-pink-500'} shadow-sm`} />
+                        <div key={`dot-${o.id}`} className={`w-1.5 h-1.5 rounded-full ${o.type === 'WIN' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                       ))}
                    </div>
                    <Trophy size={14} className="text-slate-700" />
