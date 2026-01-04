@@ -133,18 +133,23 @@ const App: React.FC = () => {
   };
 
   const renderGrid = (items: any[], isPatternGrid = false) => {
+    // Verifica se algum padrão está selecionado para aplicar o efeito dimmed
+    const isAnySelected = selectedPatternTime !== null;
+
     return (
       <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-10 gap-3">
         {items.map((item, idx) => {
           const itemTime = item.datetime_mao || item.time;
           const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
+          const isHighlighted = !isPatternGrid && highlightedTimes.has(itemTime);
           
           return (
             <div key={`${itemTime}-${idx}`}>
               <Candle 
                 time={itemTime} 
                 color={itemColor}
-                highlighted={!isPatternGrid && highlightedTimes.has(itemTime)}
+                highlighted={isHighlighted}
+                dimmed={!isPatternGrid && isAnySelected} // Aplica dimmed se houver seleção
                 onClick={isPatternGrid ? () => handlePatternClick(itemTime) : undefined}
               />
             </div>
@@ -275,13 +280,13 @@ const App: React.FC = () => {
               {selectedPatternTime && (
                 <button 
                   onClick={() => setSelectedPatternTime(null)}
-                  className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 hover:text-white transition-colors animate-pulse"
                 >
                   <XCircle size={14} /> Limpar Seleção
                 </button>
               )}
             </div>
-            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[500px] max-h-[700px]">
+            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[500px] max-h-[700px] scroll-smooth">
               {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(displayData)}
             </div>
             <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest">
@@ -298,7 +303,7 @@ const App: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (CLIQUE PARA RASTREAR)</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">CLIQUE NO RESULTADO PARA RASTREAR NO GRID</p>
                     </div>
                   </div>
                 </div>
@@ -319,11 +324,11 @@ const App: React.FC = () => {
                 
                 <div className="px-6 py-4 flex items-center gap-3 border-t border-white/5">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
                     <span className="text-[9px] font-black uppercase text-slate-500">AZUL (P1)</span>
                   </div>
                   <div className="flex items-center gap-2 ml-2">
-                    <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]"></span>
                     <span className="text-[9px] font-black uppercase text-slate-500">ROSA (P2)</span>
                   </div>
                 </div>
