@@ -11,17 +11,14 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
     if (!c) return 'bg-slate-500/10 text-slate-400 border-slate-700';
     const normalized = c.toUpperCase().trim();
     
-    // Azul (Continuidade)
     if (normalized.includes('AZUL') || normalized.includes('CONTINUIDADE')) {
       return 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.1)]';
     }
 
-    // Rosa (Reversão)
     if (normalized.includes('ROSA') || normalized.includes('REVERSAO')) {
       return 'bg-pink-500/10 text-pink-400 border-pink-500/30 shadow-[0_0_10px_rgba(236,72,153,0.1)]';
     }
 
-    // Verde
     if (
       normalized.includes('VERD') || 
       normalized.includes('CALL') || 
@@ -33,7 +30,6 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
       return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
     }
     
-    // Vermelho
     if (
       normalized.includes('VERMELH') || 
       normalized.includes('PUT') || 
@@ -45,38 +41,25 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
       return 'bg-red-500/10 text-red-400 border-red-500/30';
     }
     
-    // Doji / Cinza
     return 'bg-slate-500/10 text-slate-400 border-slate-700/50';
   };
 
-  /**
-   * Formatação para HH:MM
-   * Extrai Horas e Minutos da string datetime_mao
-   */
   const formatTimeHHMM = (t: string) => {
     if (!t) return '--:--';
-    
     try {
-      // 1. Extrair a parte do tempo (HH:MM:SS)
-      const rawPart = t.includes(' ') ? t.split(' ')[1] : t;
-      
-      // 2. Limpar caracteres não numéricos exceto os dois pontos
-      const cleanPart = rawPart.replace(/[^\d:]/g, '');
-      
-      const parts = cleanPart.split(':');
-      
-      // Caso 1: HH:MM:SS -> Retorna HH:MM
+      // Split by colon to isolate HH and MM regardless of date prefixes (ISO 'T' or SQL ' ')
+      const parts = t.split(':');
       if (parts.length >= 2) {
+        // The hour (HH) is always the last 2 characters before the first colon
         const hh = parts[0].slice(-2).padStart(2, '0');
-        const mm = parts[1].padStart(2, '0');
+        // The minute (MM) is always the first 2 characters after the first colon
+        const mm = parts[1].slice(0, 2).padStart(2, '0');
+        
+        // Final validation to ensure we extracted digits
+        if (isNaN(parseInt(hh)) || isNaN(parseInt(mm))) return '--:--';
+        
         return `${hh}:${mm}`;
       }
-      
-      // Caso emergencial: tenta extrair os primeiros 4 dígitos como HHMM
-      if (cleanPart.length >= 4) {
-        return cleanPart.slice(0, 4).replace(/(..)(..)/, '$1:$2');
-      }
-
       return '--:--';
     } catch (e) {
       return '--:--';
@@ -84,13 +67,7 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
   };
 
   return (
-    <div 
-      className={`
-        tag-pill border py-1.5 px-3 flex items-center justify-center 
-        transition-all duration-200 hover:brightness-125 cursor-default
-        ${getColorStyles(color)}
-      `}
-    >
+    <div className={`tag-pill border py-1.5 px-3 flex items-center justify-center transition-all duration-200 hover:brightness-125 cursor-default ${getColorStyles(color)}`}>
       <span className="font-mono text-[11px] font-black tabular-nums tracking-tighter">
         {formatTimeHHMM(time)}
       </span>
