@@ -48,7 +48,6 @@ const App: React.FC = () => {
     }).format(new Date());
   }, []);
 
-  // Dados filtrados para exibição (Máximo 120 itens - FIFO)
   const displayData = useMemo(() => data.slice(-120), [data]);
 
   const isGreen = (cor: string) => {
@@ -71,16 +70,14 @@ const App: React.FC = () => {
         .from('eurusd_otc_completo')
         .select('datetime_mao, cor')
         .order('datetime_mao', { ascending: false })
-        .limit(200); // Pegamos um pouco mais para garantir que achamos 10 padrões
+        .limit(300); // Buffer aumentado para garantir encontrar os últimos 10 padrões
 
       if (supabaseError) throw new Error(supabaseError.message);
 
       if (candles) {
-        // Cronologia: Antigo -> Novo
         const chronologicalData = [...candles].reverse();
         setData(chronologicalData);
 
-        // Estatísticas baseadas nos 120 candles visíveis
         const recent = chronologicalData.slice(-120);
         const total = recent.length;
         const green = recent.filter(c => isGreen(c.cor)).length;
@@ -113,9 +110,6 @@ const App: React.FC = () => {
     };
   }, [fetchData, getManausTime]);
 
-  /**
-   * RENDER GRID: Sistema de 10 colunas fixas.
-   */
   const renderGrid = (items: any[]) => {
     return (
       <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-10 gap-3">
@@ -133,51 +127,44 @@ const App: React.FC = () => {
 
   /**
    * Catalogação de trás para frente (Padrão Contínuo):
-   * Sequência (2) + Correção (1) + Confirmação (1) = Entrada (1)
+   * Analisa cada candle individualmente para garantir que nenhum padrão seja perdido.
    */
   const displayPatterns = useMemo(() => {
     const detected: PatternResult[] = [];
     if (data.length < 5) return detected;
 
-    // Iteramos de trás para frente
+    // Percorre cada candle como potencial entrada
     for (let i = data.length - 1; i >= 4; i--) {
-      const c5_entrada = data[i];
-      const c4_confirma = data[i - 1];
-      const c3_correcao = data[i - 2];
-      const c2_seq2 = data[i - 3];
-      const c1_seq1 = data[i - 4];
+      const entry = data[i];
+      const confirm = data[i - 1];
+      const correction = data[i - 2];
+      const seq2 = data[i - 3];
+      const seq1 = data[i - 4];
 
-      // Ignora se houver dojis no meio do padrão base (opcional, mas comum)
-      if (isDoji(c1_seq1.cor) || isDoji(c2_seq2.cor) || isDoji(c3_correcao.cor) || isDoji(c4_confirma.cor)) continue;
+      // 1. Validação de Sequência (C1 e C2 iguais)
+      const isSequence = (isGreen(seq1.cor) && isGreen(seq2.cor)) || (isRed(seq1.cor) && isRed(seq2.cor));
+      if (!isSequence) continue;
 
-      // 1. Sequência de 2 (C1 e C2 iguais)
-      const seqValida = (isGreen(c1_seq1.cor) && isGreen(c2_seq2.cor)) || (isRed(c1_seq1.cor) && isRed(c2_seq2.cor));
-      if (!seqValida) continue;
+      // 2. Validação de Correção (C3 diferente de C2)
+      const isCorrection = isGreen(correction.cor) !== isGreen(seq2.cor) && !isDoji(correction.cor);
+      if (!isCorrection) continue;
 
-      // 2. Correção de 1 (C3 diferente da sequência)
-      const correcValida = isGreen(c3_correcao.cor) !== isGreen(c2_seq2.cor);
-      if (!correcValida) continue;
+      // 3. Validação de Confirmação (C4 igual a C3)
+      const isConfirmation = isGreen(confirm.cor) === isGreen(correction.cor);
+      if (!isConfirmation) continue;
 
-      // 3. Confirmação de 1 (C4 igual à correção)
-      const confirmValida = isGreen(c4_confirma.cor) === isGreen(c3_correcao.cor);
-      if (!confirmValida) continue;
-
-      // Se chegamos aqui, o padrão existiu. C5 é o resultado da entrada.
-      // Se C5 seguiu a cor de C4 (Confirmação), é AZUL (Contínuo)
-      // Se C5 voltou para a cor da sequência (C1/C2), é ROSA (Reversão)
-      const isContinuo = isGreen(c5_entrada.cor) === isGreen(c4_confirma.cor);
+      // 4. Determinação do Resultado (C5 / Entry)
+      // AZUL se continuar a cor da confirmação. ROSA se reverter.
+      const isContinuo = isGreen(entry.cor) === isGreen(confirm.cor);
       
       detected.push({ 
-        time: c5_entrada.datetime_mao, 
+        time: entry.datetime_mao, 
         type: isContinuo ? 'AZUL' : 'ROSA' 
       });
 
-      // Limite de 10 resultados
       if (detected.length >= 10) break;
     }
 
-    // Como buscamos de trás pra frente, o array está do mais novo pro mais antigo.
-    // Vamos reverter para que no grid o "mais novo" fique no final ou conforme a ordem de leitura.
     return detected.reverse();
   }, [data]);
 

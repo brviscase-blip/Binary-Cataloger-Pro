@@ -44,21 +44,15 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
     return 'bg-slate-500/10 text-slate-400 border-slate-700/50';
   };
 
-  const formatTimeHHMM = (t: string) => {
+  const formatTimeMMSS = (t: string) => {
     if (!t) return '--:--';
     try {
-      // Split by colon to isolate HH and MM regardless of date prefixes (ISO 'T' or SQL ' ')
+      // Tenta extrair mm:ss de formatos ISO ou strings de data/hora
       const parts = t.split(':');
       if (parts.length >= 2) {
-        // The hour (HH) is always the last 2 characters before the first colon
-        const hh = parts[0].slice(-2).padStart(2, '0');
-        // The minute (MM) is always the first 2 characters after the first colon
-        const mm = parts[1].slice(0, 2).padStart(2, '0');
-        
-        // Final validation to ensure we extracted digits
-        if (isNaN(parseInt(hh)) || isNaN(parseInt(mm))) return '--:--';
-        
-        return `${hh}:${mm}`;
+        const mm = parts[parts.length - 2].slice(-2).padStart(2, '0');
+        const ss = parts[parts.length - 1].slice(0, 2).padStart(2, '0');
+        return `${mm}:${ss}`;
       }
       return '--:--';
     } catch (e) {
@@ -69,7 +63,7 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
   return (
     <div className={`tag-pill border py-1.5 px-3 flex items-center justify-center transition-all duration-200 hover:brightness-125 cursor-default ${getColorStyles(color)}`}>
       <span className="font-mono text-[11px] font-black tabular-nums tracking-tighter">
-        {formatTimeHHMM(time)}
+        {formatTimeMMSS(time)}
       </span>
     </div>
   );
