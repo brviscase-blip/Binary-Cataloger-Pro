@@ -48,6 +48,18 @@ const App: React.FC = () => {
     }).format(new Date());
   }, []);
 
+  // Dados filtrados para exibição (Máximo 120 itens - FIFO)
+  const displayData = useMemo(() => data.slice(-120), [data]);
+
+  const isGreen = (cor: string) => {
+    const v = cor?.toUpperCase() || '';
+    return v.includes('VERD') || v.includes('CALL') || v.includes('WIN') || v.includes('ALTA') || v.includes('BUY') || v.includes('COMPRA');
+  };
+  const isRed = (cor: string) => {
+    const v = cor?.toUpperCase() || '';
+    return v.includes('VERMELH') || v.includes('PUT') || v.includes('LOSS') || v.includes('BAIXA') || v.includes('SELL') || v.includes('VENDA');
+  };
+
   const fetchData = useCallback(async (showSkeleton = false) => {
     if (isFetching.current) return;
     if (showSkeleton) setLoading(true);
@@ -58,18 +70,20 @@ const App: React.FC = () => {
         .from('eurusd_otc_completo')
         .select('datetime_mao, cor')
         .order('datetime_mao', { ascending: false })
-        .limit(100); 
+        .limit(120); // Busca até 120 registros para o card de Ciclos de Fluxo
 
       if (supabaseError) throw new Error(supabaseError.message);
 
       if (candles) {
-        // Cronologia: Antigo -> Novo (Para preencher do Top-Left para Bottom-Right)
+        // Cronologia: Antigo -> Novo
         const chronologicalData = [...candles].reverse();
         setData(chronologicalData);
 
-        const total = candles.length;
-        const green = candles.filter(c => isGreen(c.cor)).length;
-        const red = candles.filter(c => isRed(c.cor)).length;
+        // Estatísticas baseadas nos 120 candles visíveis
+        const recent = chronologicalData.slice(-120);
+        const total = recent.length;
+        const green = recent.filter(c => isGreen(c.cor)).length;
+        const red = recent.filter(c => isRed(c.cor)).length;
         const winRateNum = total > 0 ? (green / (green + red || 1)) * 100 : 0;
         
         setStats({ total, green, red, doji: total - (green + red), winRate: winRateNum.toFixed(1) + '%' });
@@ -98,18 +112,8 @@ const App: React.FC = () => {
     };
   }, [fetchData, getManausTime]);
 
-  const isGreen = (cor: string) => {
-    const v = cor?.toUpperCase() || '';
-    return v.includes('VERD') || v.includes('CALL') || v.includes('WIN') || v.includes('ALTA') || v.includes('BUY') || v.includes('COMPRA');
-  };
-  const isRed = (cor: string) => {
-    const v = cor?.toUpperCase() || '';
-    return v.includes('VERMELH') || v.includes('PUT') || v.includes('LOSS') || v.includes('BAIXA') || v.includes('SELL') || v.includes('VENDA');
-  };
-
   /**
    * RENDER GRID: Sistema de 10 colunas fixas.
-   * Começa no topo esquerdo e flui para a direita (sentido da direita).
    */
   const renderGrid = (items: any[]) => {
     return (
@@ -126,7 +130,8 @@ const App: React.FC = () => {
     );
   };
 
-  const patterns = useMemo(() => {
+  // Padrões detectados (Mantido limite de 10 conforme turnos anteriores)
+  const displayPatterns = useMemo(() => {
     const detected: PatternResult[] = [];
     if (data.length < 4) return detected;
     for (let i = 0; i <= data.length - 4; i++) {
@@ -137,34 +142,32 @@ const App: React.FC = () => {
         detected.push({ time: v2.datetime_mao, type: isRed(v3.cor) ? 'AZUL' : 'ROSA' });
       }
     }
-    return detected;
+    return detected.slice(-10);
   }, [data]);
 
-  // Logic to determine prevailing color for Flow Card
+  // Cor dinâmica baseada no que está visível no card de Fluxo
   const flowPrevailingStyles = useMemo(() => {
-    if (data.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-    const green = data.filter(c => isGreen(c.cor)).length;
-    const red = data.filter(c => isRed(c.cor)).length;
-    const total = data.length;
+    if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+    const green = displayData.filter(c => isGreen(c.cor)).length;
+    const red = displayData.filter(c => isRed(c.cor)).length;
+    const total = displayData.length;
     const doji = total - green - red;
 
     const max = Math.max(green, red, doji);
-    if (max === green && green > red) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+    if (max === green && green >= red) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     if (max === red) return 'text-red-500 bg-red-500/10 border-red-500/20';
-    if (max === doji) return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
-    return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-  }, [data]);
+    return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+  }, [displayData]);
 
-  // Logic to determine prevailing color for Convergence Card
+  // Cor dinâmica baseada no que está visível no card de Padrão Continuo
   const patternPrevailingStyles = useMemo(() => {
-    if (patterns.length === 0) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
-    const azul = patterns.filter(p => p.type === 'AZUL').length;
-    const rosa = patterns.filter(p => p.type === 'ROSA').length;
+    if (displayPatterns.length === 0) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
+    const azul = displayPatterns.filter(p => p.type === 'AZUL').length;
+    const rosa = displayPatterns.filter(p => p.type === 'ROSA').length;
 
     if (azul > rosa) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
-    if (rosa >= azul) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
     return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
-  }, [patterns]);
+  }, [displayPatterns]);
 
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
@@ -229,7 +232,7 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
-              {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(data)}
+              {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(displayData)}
             </div>
             <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest">
               <span>ANTIGA: TOP-LEFT | RECENTE: BOTTOM-RIGHT</span>
@@ -241,11 +244,18 @@ const App: React.FC = () => {
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] guide-pink">
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${patternPrevailingStyles}`}><Zap size={20}/></div>
-                <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Convergência</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p></div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p>
+                    <span className="text-[10px] font-black text-white/20">|</span>
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">CICLO CONTINUO X REVERSÃO DE CICLO</p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
-              {patterns.length > 0 ? renderGrid(patterns) : <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-20">Aguardando Padrões...</div>}
+              {displayPatterns.length > 0 ? renderGrid(displayPatterns) : <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-20">Aguardando Padrões...</div>}
             </div>
             <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-blue-500"></span><span className="text-[9px] font-black uppercase text-slate-500">AZUL (P1)</span>
