@@ -7,10 +7,8 @@ import {
   BarChart3, 
   Activity, 
   Clock,
-  Target,
   Zap,
   ChevronDown,
-  Pin,
   XCircle,
   TrendingUp,
   TrendingDown,
@@ -269,14 +267,12 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => setIsHeaderVisible(false)} className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 border border-white/10 transition-colors group">
-            <Pin size={18} />
-          </button>
+          {/* Botão de fixação removido conforme solicitado */}
         </div>
       </nav>
 
       <main className="flex-1 w-full p-4 md:p-6 space-y-4">
-        {/* Barra de estatísticas removida conforme solicitado */}
+        {/* Barra de estatísticas removida conforme solicitado anteriormente */}
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
