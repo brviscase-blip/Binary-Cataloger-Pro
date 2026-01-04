@@ -10,7 +10,8 @@ import {
   Target,
   Zap,
   ChevronDown,
-  Pin
+  Pin,
+  XCircle
 } from 'lucide-react';
 
 interface PatternResult {
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [manausTime, setManausTime] = useState<string>('');
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'error'>('online');
+  const [selectedPatternTime, setSelectedPatternTime] = useState<string | null>(null);
   const isFetching = useRef(false);
   const pollTimer = useRef<number | null>(null);
   
@@ -108,17 +110,46 @@ const App: React.FC = () => {
     };
   }, [fetchData, getManausTime]);
 
-  const renderGrid = (items: any[]) => {
+  // Determina quais tempos de vela devem ser destacados
+  const highlightedTimes = useMemo(() => {
+    if (!selectedPatternTime || data.length === 0) return new Set<string>();
+    
+    const times = new Set<string>();
+    const signalIdx = data.findIndex(c => c.datetime_mao === selectedPatternTime);
+    
+    if (signalIdx >= 3) {
+      // O padrão é composto por 4 velas: Base, Meio1, Meio2, Sinal
+      times.add(data[signalIdx].datetime_mao);
+      times.add(data[signalIdx - 1].datetime_mao);
+      times.add(data[signalIdx - 2].datetime_mao);
+      times.add(data[signalIdx - 3].datetime_mao);
+    }
+    
+    return times;
+  }, [selectedPatternTime, data]);
+
+  const handlePatternClick = (time: string) => {
+    setSelectedPatternTime(prev => prev === time ? null : time);
+  };
+
+  const renderGrid = (items: any[], isPatternGrid = false) => {
     return (
       <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-10 gap-3">
-        {items.map((item, idx) => (
-          <div key={`${item.datetime_mao || item.time}-${idx}`}>
-            <Candle 
-              time={item.datetime_mao || item.time} 
-              color={item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor} 
-            />
-          </div>
-        ))}
+        {items.map((item, idx) => {
+          const itemTime = item.datetime_mao || item.time;
+          const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
+          
+          return (
+            <div key={`${itemTime}-${idx}`}>
+              <Candle 
+                time={itemTime} 
+                color={itemColor}
+                highlighted={!isPatternGrid && highlightedTimes.has(itemTime)}
+                onClick={isPatternGrid ? () => handlePatternClick(itemTime) : undefined}
+              />
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -127,27 +158,20 @@ const App: React.FC = () => {
     const detected: PatternResult[] = [];
     if (data.length < 4) return detected;
 
-    // Lógica ajustada para ciclos de 4 velas: [Base, Meio1, Meio2, Sinal]
     for (let i = data.length - 1; i >= 3; i--) {
       const signal = data[i];
       const mid2 = data[i - 1];
       const mid1 = data[i - 2];
       const base = data[i - 3];
 
-      // Ignora se houver doji em qualquer parte do padrão
       if (isDoji(base.cor) || isDoji(mid1.cor) || isDoji(mid2.cor) || isDoji(signal.cor)) continue;
 
-      // 1. As duas velas centrais devem ser da mesma cor
       const midsMatch = isGreen(mid1.cor) === isGreen(mid2.cor);
       if (!midsMatch) continue;
 
-      // 2. A vela base deve ser de cor diferente das centrais
       const baseDiffers = isGreen(base.cor) !== isGreen(mid1.cor);
       if (!baseDiffers) continue;
 
-      // 3. Resultado:
-      // AZUL (Continuidade) se o sinal for igual ao "Meio"
-      // ROSA (Ciclo/Reversão) se o sinal for igual à "Base" (diferente do meio)
       const isContinuity = isGreen(signal.cor) === isGreen(mid1.cor);
       
       detected.push({ 
@@ -248,6 +272,14 @@ const App: React.FC = () => {
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${flowPrevailingStyles}`}><Activity size={20}/></div>
                  <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Catalogador de candles</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p></div>
               </div>
+              {selectedPatternTime && (
+                <button 
+                  onClick={() => setSelectedPatternTime(null)}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 hover:text-white transition-colors"
+                >
+                  <XCircle size={14} /> Limpar Seleção
+                </button>
+              )}
             </div>
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[500px] max-h-[700px]">
               {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(displayData)}
@@ -266,7 +298,7 @@ const App: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (CLIQUE PARA RASTREAR)</p>
                     </div>
                   </div>
                 </div>
@@ -276,7 +308,7 @@ const App: React.FC = () => {
                 <div className="px-6 h-[60px] flex items-center">
                   {displayPatterns.length > 0 ? (
                     <div className="w-full">
-                      {renderGrid(displayPatterns)}
+                      {renderGrid(displayPatterns, true)}
                     </div>
                   ) : (
                     <div className="w-full text-center text-[10px] uppercase font-black tracking-widest opacity-20">

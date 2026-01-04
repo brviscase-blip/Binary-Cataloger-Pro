@@ -4,9 +4,11 @@ import React from 'react';
 interface CandleProps {
   time: string;
   color: string;
+  highlighted?: boolean;
+  onClick?: () => void;
 }
 
-const Candle: React.FC<CandleProps> = ({ time, color }) => {
+const Candle: React.FC<CandleProps> = ({ time, color, highlighted, onClick }) => {
   const getColorStyles = (c: string) => {
     if (!c) return 'bg-slate-500/10 text-slate-400 border-slate-700';
     const normalized = c.toUpperCase().trim();
@@ -47,12 +49,10 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
   const formatTimeHHMM = (t: string) => {
     if (!t) return '--:--';
     try {
-      // Se a string contiver espaço (ex: "2023-10-27 23:34:00"), pega a parte do tempo
       const timePart = t.includes(' ') ? t.split(' ')[1] : t;
       const parts = timePart.split(':');
       
       if (parts.length >= 2) {
-        // Pega as duas primeiras partes (HH:mm)
         const hh = parts[0].slice(-2).padStart(2, '0');
         const mm = parts[1].slice(0, 2).padStart(2, '0');
         return `${hh}:${mm}`;
@@ -64,10 +64,20 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
   };
 
   return (
-    <div className={`tag-pill border py-1.5 px-3 flex items-center justify-center transition-all duration-200 hover:brightness-125 cursor-default ${getColorStyles(color)}`}>
+    <div 
+      onClick={onClick}
+      className={`tag-pill border py-1.5 px-3 flex items-center justify-center transition-all duration-300 cursor-pointer relative
+        ${getColorStyles(color)} 
+        ${highlighted ? 'scale-110 !border-white !bg-white/20 z-10 ring-2 ring-white/50' : 'hover:brightness-125 opacity-100'}
+        ${onClick ? 'active:scale-95' : ''}
+      `}
+    >
       <span className="font-mono text-[11px] font-black tabular-nums tracking-tighter">
         {formatTimeHHMM(time)}
       </span>
+      {highlighted && (
+        <div className="absolute -inset-1 border border-white/30 rounded-md animate-pulse pointer-events-none"></div>
+      )}
     </div>
   );
 };
