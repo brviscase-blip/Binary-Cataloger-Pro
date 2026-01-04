@@ -114,7 +114,6 @@ const App: React.FC = () => {
     };
   }, [fetchData, getManausTime]);
 
-  // Determina quais tempos de vela devem ser destacados
   const highlightedTimes = useMemo(() => {
     if (!selectedPatternTime || data.length === 0) return new Set<string>();
     
@@ -122,7 +121,6 @@ const App: React.FC = () => {
     const signalIdx = data.findIndex(c => c.datetime_mao === selectedPatternTime);
     
     if (signalIdx >= 3) {
-      // O padrão é composto por 4 velas: Base, Meio1, Meio2, Sinal
       times.add(data[signalIdx].datetime_mao);
       times.add(data[signalIdx - 1].datetime_mao);
       times.add(data[signalIdx - 2].datetime_mao);
@@ -137,7 +135,6 @@ const App: React.FC = () => {
   };
 
   const renderGrid = (items: any[], isPatternGrid = false) => {
-    // Verifica se algum padrão está selecionado para aplicar o efeito dimmed
     const isAnySelected = selectedPatternTime !== null;
 
     return (
@@ -153,7 +150,7 @@ const App: React.FC = () => {
                 time={itemTime} 
                 color={itemColor}
                 highlighted={isHighlighted}
-                dimmed={!isPatternGrid && isAnySelected} // Aplica dimmed se houver seleção
+                dimmed={!isPatternGrid && isAnySelected}
                 onClick={isPatternGrid ? () => handlePatternClick(itemTime) : undefined}
               />
             </div>
@@ -195,10 +192,16 @@ const App: React.FC = () => {
   }, [data]);
 
   const patternCounts = useMemo(() => {
+    const total = displayPatterns.length;
+    const azul = displayPatterns.filter(p => p.type === 'AZUL').length;
+    const rosa = displayPatterns.filter(p => p.type === 'ROSA').length;
+    
     return {
-      total: displayPatterns.length,
-      azul: displayPatterns.filter(p => p.type === 'AZUL').length,
-      rosa: displayPatterns.filter(p => p.type === 'ROSA').length
+      total,
+      azul,
+      rosa,
+      azulPct: total > 0 ? ((azul / total) * 100).toFixed(0) : '0',
+      rosaPct: total > 0 ? ((rosa / total) * 100).toFixed(0) : '0'
     };
   }, [displayPatterns]);
 
@@ -223,6 +226,16 @@ const App: React.FC = () => {
     if (azul > rosa) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
     return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
   }, [displayPatterns]);
+
+  // Percentuais detalhados para o grid principal
+  const flowPcts = useMemo(() => {
+    const total = stats.total || 1;
+    return {
+      green: ((stats.green / total) * 100).toFixed(1),
+      red: ((stats.red / total) * 100).toFixed(1),
+      doji: ((stats.doji / total) * 100).toFixed(1)
+    };
+  }, [stats]);
 
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
@@ -293,22 +306,31 @@ const App: React.FC = () => {
                  </div>
               </div>
               
-              <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
-                <div className="flex items-center gap-2 px-2 border-r border-white/10">
+              <div className="flex items-center gap-1 bg-black/40 rounded-lg p-1 border border-white/5">
+                <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
                   <Hash size={12} className="text-blue-500" />
                   <span className="text-[11px] font-mono font-black text-white">{stats.total}</span>
                 </div>
-                <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
                   <TrendingUp size={12} className="text-emerald-500" />
-                  <span className="text-[11px] font-mono font-black text-emerald-400">{stats.green}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-mono font-black text-emerald-400 leading-none">{stats.green}</span>
+                    <span className="text-[8px] font-mono text-emerald-500/60 leading-none mt-0.5">{flowPcts.green}%</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
                   <TrendingDown size={12} className="text-red-500" />
-                  <span className="text-[11px] font-mono font-black text-red-400">{stats.red}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-mono font-black text-red-400 leading-none">{stats.red}</span>
+                    <span className="text-[8px] font-mono text-red-500/60 leading-none mt-0.5">{flowPcts.red}%</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 px-2">
+                <div className="flex items-center gap-2 px-2 h-8">
                   <Minus size={12} className="text-slate-500" />
-                  <span className="text-[11px] font-mono font-black text-slate-300">{stats.doji}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-mono font-black text-slate-300 leading-none">{stats.doji}</span>
+                    <span className="text-[8px] font-mono text-slate-500 leading-none mt-0.5">{flowPcts.doji}%</span>
+                  </div>
                 </div>
               </div>
 
@@ -343,18 +365,24 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
-                  <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                <div className="flex items-center gap-1 bg-black/40 rounded-lg p-1 border border-white/5">
+                  <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
                     <Hash size={12} className="text-slate-400" />
                     <span className="text-[11px] font-mono font-black text-white">{patternCounts.total}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                  <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <span className="text-[11px] font-mono font-black text-blue-400">{patternCounts.azul}</span>
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-mono font-black text-blue-400 leading-none">{patternCounts.azul}</span>
+                      <span className="text-[8px] font-mono text-blue-500/60 leading-none mt-0.5">{patternCounts.azulPct}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 px-2">
+                  <div className="flex items-center gap-2 px-2 h-8">
                     <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
-                    <span className="text-[11px] font-mono font-black text-pink-400">{patternCounts.rosa}</span>
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-mono font-black text-pink-400 leading-none">{patternCounts.rosa}</span>
+                      <span className="text-[8px] font-mono text-pink-500/60 leading-none mt-0.5">{patternCounts.rosaPct}%</span>
+                    </div>
                   </div>
                 </div>
               </div>
