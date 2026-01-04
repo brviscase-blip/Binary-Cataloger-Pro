@@ -256,18 +256,19 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white/[0.03] rounded-lg border border-white/5">
-          <Clock size={14} className="text-blue-500" />
-          <div className="flex flex-col items-start leading-none">
-            <span className="text-[7px] font-black text-blue-500/70 uppercase tracking-widest mb-0.5">Manaus</span>
-            <span className="text-sm font-mono font-black text-white tabular-nums tracking-tighter">
-              {manausTime || '--:--:--'}
-            </span>
-          </div>
-        </div>
+        {/* Espaço central vazio para manter o layout equilibrado após mover o relógio */}
+        <div className="hidden sm:block"></div>
 
         <div className="flex items-center gap-4">
-          {/* Botão de fixação removido conforme solicitado */}
+          <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white/[0.03] rounded-lg border border-white/5">
+            <Clock size={14} className="text-blue-500" />
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-[7px] font-black text-blue-500/70 uppercase tracking-widest mb-0.5">Manaus</span>
+              <span className="text-sm font-mono font-black text-white tabular-nums tracking-tighter">
+                {manausTime || '--:--:--'}
+              </span>
+            </div>
+          </div>
         </div>
       </nav>
 
