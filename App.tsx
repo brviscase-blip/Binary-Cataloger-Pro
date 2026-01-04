@@ -15,7 +15,8 @@ import {
   Minus,
   Hash,
   AlertTriangle,
-  ChevronsDown
+  ChevronsDown,
+  LayoutGrid
 } from 'lucide-react';
 
 interface PatternResult {
@@ -259,8 +260,6 @@ const App: React.FC = () => {
   const formatPatternTime = (t: string) => {
     if (!t) return '--:--';
     try {
-      // Trata tanto o formato com espaço ("YYYY-MM-DD HH:MM:SS") 
-      // quanto o formato ISO ("YYYY-MM-DDTHH:MM:SS")
       const timePart = t.includes('T') ? t.split('T')[1] : (t.includes(' ') ? t.split(' ')[1] : t);
       const parts = timePart.split(':');
       if (parts.length >= 2) {
@@ -409,76 +408,79 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 relative bg-[#090d16]/50">
-              <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
-                 <div className="flex items-center gap-3">
-                    <ChevronsDown size={18} className={cycleData.type === 'AZUL' ? 'text-blue-500' : 'text-pink-500'} />
-                    <div>
-                      <h3 className="text-xs font-black uppercase tracking-widest text-white">Monitoramento de Ciclo</h3>
-                      <p className="text-[9px] font-bold text-slate-500 uppercase">Probabilidade de Reversão</p>
-                    </div>
-                 </div>
-                 {cycleData.type && (
-                   <div className={`px-2 py-1 rounded border text-[10px] font-black uppercase tracking-tighter ${cycleData.type === 'AZUL' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-pink-500/10 text-pink-400 border-pink-500/30'}`}>
-                     Ciclo {cycleData.type}
+            <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+              {/* Monitoramento de Ciclo (50%) */}
+              <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 relative bg-[#090d16]/50">
+                <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                   <div className="flex items-center gap-3">
+                      <ChevronsDown size={18} className={cycleData.type === 'AZUL' ? 'text-blue-500' : 'text-pink-500'} />
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-white">Ciclo</h3>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">Probabilidade</p>
+                      </div>
                    </div>
-                 )}
-              </div>
-
-              <div className="p-6 flex flex-col gap-1 flex-1 overflow-y-auto">
-                 {[90, 80, 70, 60, 50, 40, 30, 20, 10].map((pct, idx) => {
-                   const stepData = cycleData.streak[idx];
-                   const isActive = !!stepData;
-                   const isNext = cycleData.streak.length === idx;
-                   const isPink = cycleData.type === 'ROSA';
-                   
-                   let bgClass = 'bg-white/[0.02] text-slate-600 border-transparent opacity-40';
-                   if (isActive) {
-                     bgClass = isPink 
-                        ? 'bg-pink-500/20 text-pink-200 border-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.1)]' 
-                        : 'bg-blue-500/20 text-blue-200 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]';
-                   } else if (isNext) {
-                     bgClass = 'bg-white/5 text-slate-400 border-white/10 animate-pulse';
-                   }
-
-                   return (
-                     <div 
-                       key={pct} 
-                       className={`flex items-center justify-between px-4 py-2 rounded-lg border transition-all duration-500 ${bgClass}`}
-                       style={{ transform: isActive ? 'scale(1.02)' : 'scale(1)', marginLeft: `${idx * 4}px`, marginRight: `${idx * 4}px` }}
-                     >
-                        <div className="flex items-center gap-3">
-                           <span className="font-mono font-black text-xs">{pct}%</span>
-                           {isActive && <div className={`w-1 h-1 rounded-full ${isPink ? 'bg-pink-400' : 'bg-blue-400'}`}></div>}
-                        </div>
-                        
-                        {isActive ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold opacity-70 uppercase">Registrado</span>
-                            <span className="font-mono text-[11px] font-black">{formatPatternTime(stepData.time)}</span>
-                          </div>
-                        ) : isNext ? (
-                          <div className="flex items-center gap-2">
-                             <span className="text-[9px] font-black uppercase tracking-tighter opacity-50">Próximo Alvo</span>
-                             <Activity size={12} className="opacity-50" />
-                          </div>
-                        ) : (
-                          <Minus size={12} className="opacity-20" />
-                        )}
+                   {cycleData.type && (
+                     <div className={`px-2 py-1 rounded border text-[10px] font-black uppercase tracking-tighter ${cycleData.type === 'AZUL' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-pink-500/10 text-pink-400 border-pink-500/30'}`}>
+                       {cycleData.type}
                      </div>
-                   );
-                 })}
+                   )}
+                </div>
+
+                <div className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto scrollbar-hide">
+                   {[90, 80, 70, 60, 50, 40, 30, 20, 10].map((pct, idx) => {
+                     const stepData = cycleData.streak[idx];
+                     const isActive = !!stepData;
+                     const isNext = cycleData.streak.length === idx;
+                     const isPink = cycleData.type === 'ROSA';
+                     
+                     let bgClass = 'bg-white/[0.02] text-slate-600 border-transparent opacity-40';
+                     if (isActive) {
+                       bgClass = isPink 
+                          ? 'bg-pink-500/20 text-pink-200 border-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.1)]' 
+                          : 'bg-blue-500/20 text-blue-200 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]';
+                     } else if (isNext) {
+                       bgClass = 'bg-white/5 text-slate-400 border-white/10 animate-pulse';
+                     }
+
+                     return (
+                       <div 
+                         key={pct} 
+                         className={`flex items-center justify-between px-3 py-1.5 rounded-lg border transition-all duration-500 ${bgClass}`}
+                         style={{ transform: isActive ? 'scale(1.02)' : 'scale(1)' }}
+                       >
+                          <div className="flex items-center gap-2">
+                             <span className="font-mono font-black text-[10px]">{pct}%</span>
+                             {isActive && <div className={`w-1 h-1 rounded-full ${isPink ? 'bg-pink-400' : 'bg-blue-400'}`}></div>}
+                          </div>
+                          
+                          {isActive ? (
+                            <span className="font-mono text-[10px] font-black">{formatPatternTime(stepData.time)}</span>
+                          ) : isNext ? (
+                             <Activity size={10} className="opacity-50" />
+                          ) : (
+                            <Minus size={10} className="opacity-20" />
+                          )}
+                       </div>
+                     );
+                   })}
+                </div>
+
+                {cycleData.streak.length >= 7 && (
+                  <div className="absolute bottom-2 left-4 right-4 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 animate-pulse">
+                     <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                     <p className="text-[8px] font-black text-red-500 uppercase leading-tight">Alerta de Exaustão</p>
+                  </div>
+                )}
               </div>
 
-              {cycleData.streak.length >= 7 && (
-                <div className="absolute bottom-4 left-6 right-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 animate-pulse">
-                   <AlertTriangle size={18} className="text-red-500 shrink-0" />
-                   <div className="leading-tight">
-                      <p className="text-[9px] font-black text-red-500 uppercase">Alerta de Exaustão</p>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase">Ciclo Longo Detectado. Alta chance de Reversão.</p>
-                   </div>
+              {/* Espaço Reservado (50%) */}
+              <div className="flex-1 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center bg-white/[0.01] group transition-all hover:bg-white/[0.02] hover:border-white/20">
+                <div className="w-12 h-12 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <LayoutGrid size={20} className="text-slate-700" />
                 </div>
-              )}
+                <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.2em]">Módulo Reservado</p>
+                <p className="text-[8px] font-bold text-slate-800 uppercase mt-1">Pronto para expansão</p>
+              </div>
             </div>
           </div>
         </div>
