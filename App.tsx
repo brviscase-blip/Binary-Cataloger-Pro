@@ -138,9 +138,9 @@ const App: React.FC = () => {
     const isAnySelected = selectedPatternTime !== null;
 
     return (
-      <div className={`grid gap-3 ${isPatternGrid 
-        ? 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15' 
-        : 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15 2xl:grid-cols-20'}`}>
+      <div className={`grid gap-2 ${isPatternGrid 
+        ? 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10' 
+        : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-10 2xl:grid-cols-12'}`}>
         {items.map((item, idx) => {
           const itemTime = item.datetime_mao || item.time;
           const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
@@ -258,7 +258,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Novo local do Relógio na Barra de Navegação */}
         <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white/[0.03] rounded-lg border border-white/5">
           <Clock size={14} className="text-blue-500" />
           <div className="flex flex-col items-start leading-none">
@@ -300,14 +299,15 @@ const App: React.FC = () => {
               <div className="progress-bar"><div className="progress-fill bg-slate-500" style={{ width: `${(stats.red/stats.total)*100}%` }}></div></div>
             </div>
           </div>
-          {/* Espaço anteriormente ocupado pelo relógio agora é removido para focar na métrica */}
           <div className="flex items-center gap-4 pl-6 border-l border-white/5 opacity-50">
             <Target size={20} className="text-white/20" />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
-          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all xl:col-span-8 2xl:col-span-9">
+        {/* Layout 50/50 em telas XL */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
+          {/* Lado Esquerdo - 50% */}
+          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
               <div className="flex items-center gap-4">
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${flowPrevailingStyles}`}><Activity size={20}/></div>
@@ -359,7 +359,8 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 xl:col-span-4 2xl:col-span-3 h-full">
+          {/* Lado Direito - 50% */}
+          <div className="flex flex-col gap-4 h-full">
             <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden border-pink-500/10 transition-all shrink-0">
               <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
                 <div className="flex items-center gap-4">
