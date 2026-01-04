@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { CandleData, Stats } from './types';
@@ -535,6 +534,7 @@ const App: React.FC = () => {
                       </div>
                    </div>
                    {cycleData.type && (
+                     /* Fix: Replaced undefined cycleType with cycleData.type */
                      <div className={`px-2 py-1 rounded border text-[10px] font-black uppercase tracking-tighter ${cycleData.type === 'AZUL' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-pink-500/10 text-pink-400 border-pink-500/30'}`}>
                        {cycleData.type}
                      </div>
@@ -587,31 +587,27 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Módulo de Assertividade - Espaço Dividido */}
+              {/* Módulo de Assertividade - Espaço Dividido Neutralizado */}
               <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 bg-[#090d16]/40">
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
                    <div className="flex items-center gap-3">
                       <History size={18} className="text-blue-500" />
                       <div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-white">Assertividade</h3>
-                        <p className="text-[9px] font-bold text-slate-500 uppercase">Histórico em 2 Colunas</p>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">Últimos 10 Resultados</p>
                       </div>
                    </div>
                    <div className="flex flex-col items-end">
                       <span className={`text-lg font-black leading-none ${Number(winRateHistory) > 70 ? 'text-emerald-400' : 'text-white'}`}>{winRateHistory}%</span>
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Últimos 10</span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Taxa Geral</span>
                    </div>
                 </div>
 
                 <div className="p-3 flex-1 overflow-y-auto scrollbar-hide">
                   {performanceHistory.length > 0 ? (
                     <div className="grid grid-cols-2 gap-3 h-full">
-                      {/* Lado Esquerdo - Azul */}
-                      <div className="flex flex-col gap-2 p-2 rounded-xl border border-blue-500/10 bg-blue-500/[0.02] relative">
-                         <div className="flex items-center justify-between mb-1 px-1">
-                            <span className="text-[8px] font-black uppercase text-blue-500/60 tracking-widest">Lado Azul</span>
-                            <div className="w-1 h-1 rounded-full bg-blue-500/40" />
-                         </div>
+                      {/* Coluna 1 (Mais recentes) */}
+                      <div className="flex flex-col gap-2 p-1 relative border-r border-white/5">
                          <div className="flex flex-col gap-2">
                            {performanceHistory.slice(0, 5).map((outcome) => (
                              <div key={outcome.id} className="flex flex-col bg-black/40 p-2 rounded-lg border border-white/5 hover:border-white/10 transition-all">
@@ -622,20 +618,18 @@ const App: React.FC = () => {
                                   <span className="text-[8px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</span>
                                 </div>
                                 <div className="mt-1.5 flex items-center justify-between">
-                                  <span className={`text-[9px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>{outcome.type}</span>
-                                  <span className="text-[7px] font-bold text-slate-600 uppercase">{outcome.signalName}</span>
+                                  <span className={`text-[9px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>{outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}</span>
+                                  <span className={`px-1 py-0.5 rounded-[2px] text-[6px] font-black uppercase ${outcome.cycleType === 'AZUL' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'}`}>
+                                    {outcome.cycleType}
+                                  </span>
                                 </div>
                              </div>
                            ))}
                          </div>
                       </div>
 
-                      {/* Lado Direito - Vermelho */}
-                      <div className="flex flex-col gap-2 p-2 rounded-xl border border-red-500/10 bg-red-500/[0.02] relative">
-                         <div className="flex items-center justify-between mb-1 px-1">
-                            <div className="w-1 h-1 rounded-full bg-red-500/40" />
-                            <span className="text-[8px] font-black uppercase text-red-500/60 tracking-widest">Lado Vermelho</span>
-                         </div>
+                      {/* Coluna 2 (Anteriores) */}
+                      <div className="flex flex-col gap-2 p-1 relative">
                          <div className="flex flex-col gap-2">
                            {performanceHistory.slice(5, 10).map((outcome) => (
                              <div key={outcome.id} className="flex flex-col bg-black/40 p-2 rounded-lg border border-white/5 hover:border-white/10 transition-all">
@@ -646,8 +640,10 @@ const App: React.FC = () => {
                                   <span className="text-[8px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</span>
                                 </div>
                                 <div className="mt-1.5 flex items-center justify-between">
-                                  <span className={`text-[9px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>{outcome.type}</span>
-                                  <span className="text-[7px] font-bold text-slate-600 uppercase">{outcome.signalName}</span>
+                                  <span className={`text-[9px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>{outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}</span>
+                                  <span className={`px-1 py-0.5 rounded-[2px] text-[6px] font-black uppercase ${outcome.cycleType === 'AZUL' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'}`}>
+                                    {outcome.cycleType}
+                                  </span>
                                 </div>
                              </div>
                            ))}
