@@ -13,7 +13,9 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Hash
+  Hash,
+  AlertTriangle,
+  ChevronsDown
 } from 'lucide-react';
 
 interface PatternResult {
@@ -132,34 +134,6 @@ const App: React.FC = () => {
     setSelectedPatternTime(prev => prev === time ? null : time);
   };
 
-  const renderGrid = (items: any[], isPatternGrid = false) => {
-    const isAnySelected = selectedPatternTime !== null;
-
-    return (
-      <div className={`grid gap-2 ${isPatternGrid 
-        ? 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10' 
-        : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-10 2xl:grid-cols-12'}`}>
-        {items.map((item, idx) => {
-          const itemTime = item.datetime_mao || item.time;
-          const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
-          const isHighlighted = !isPatternGrid && highlightedTimes.has(itemTime);
-          
-          return (
-            <div key={`${itemTime}-${idx}`}>
-              <Candle 
-                time={itemTime} 
-                color={itemColor}
-                highlighted={isHighlighted}
-                dimmed={!isPatternGrid && isAnySelected}
-                onClick={isPatternGrid ? () => handlePatternClick(itemTime) : undefined}
-              />
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   const displayPatterns = useMemo(() => {
     const detected: PatternResult[] = [];
     if (data.length < 4) return detected;
@@ -190,6 +164,53 @@ const App: React.FC = () => {
 
     return detected.reverse();
   }, [data]);
+
+  // Lógica do Funil de Ciclo
+  const cycleData = useMemo(() => {
+    if (displayPatterns.length === 0) return { type: null, streak: [] };
+    
+    const patterns = [...displayPatterns].reverse(); 
+    const latestType = patterns[0].type;
+    const streak: PatternResult[] = [];
+
+    for (const p of patterns) {
+      if (p.type === latestType) {
+        streak.push(p);
+      } else {
+        break;
+      }
+    }
+
+    return { type: latestType, streak: streak.reverse() }; 
+  }, [displayPatterns]);
+
+  const renderGrid = (items: any[], isPatternGrid = false) => {
+    const isAnySelected = selectedPatternTime !== null;
+
+    return (
+      <div className={`grid gap-2 ${isPatternGrid 
+        ? 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10' 
+        : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-10 2xl:grid-cols-12'}`}>
+        {items.map((item, idx) => {
+          const itemTime = item.datetime_mao || item.time;
+          const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
+          const isHighlighted = !isPatternGrid && highlightedTimes.has(itemTime);
+          
+          return (
+            <div key={`${itemTime}-${idx}`}>
+              <Candle 
+                time={itemTime} 
+                color={itemColor}
+                highlighted={isHighlighted}
+                dimmed={!isPatternGrid && isAnySelected}
+                onClick={isPatternGrid ? () => handlePatternClick(itemTime) : undefined}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const patternCounts = useMemo(() => {
     const total = displayPatterns.length;
@@ -236,6 +257,14 @@ const App: React.FC = () => {
     };
   }, [stats]);
 
+  const formatPatternTime = (t: string) => {
+    if (!t) return '--:--';
+    const parts = t.split(' ');
+    const time = parts[1] || parts[0];
+    const hm = time.split(':');
+    return `${hm[0]}:${hm[1]}`;
+  };
+
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
       {!isHeaderVisible && (
@@ -256,7 +285,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Espaço central vazio para manter o layout equilibrado após mover o relógio */}
         <div className="hidden sm:block"></div>
 
         <div className="flex items-center gap-4">
@@ -273,9 +301,7 @@ const App: React.FC = () => {
       </nav>
 
       <main className="flex-1 w-full p-4 md:p-6 space-y-4">
-        {/* Barra de estatísticas removida conforme solicitado anteriormente */}
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch flex-1">
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
               <div className="flex items-center gap-4">
@@ -376,12 +402,76 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.01] flex flex-col items-center justify-center gap-3 p-12 text-center group transition-all hover:bg-white/[0.02] hover:border-white/10">
-              <div className="w-12 h-12 rounded-full border border-dashed border-white/10 flex items-center justify-center text-slate-700 group-hover:scale-110 transition-transform">
-                <BarChart3 size={20} />
+            <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 relative bg-[#090d16]/50">
+              <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                 <div className="flex items-center gap-3">
+                    <ChevronsDown size={18} className={cycleData.type === 'AZUL' ? 'text-blue-500' : 'text-pink-500'} />
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-white">Monitoramento de Ciclo</h3>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase">Probabilidade de Reversão</p>
+                    </div>
+                 </div>
+                 {cycleData.type && (
+                   <div className={`px-2 py-1 rounded border text-[10px] font-black uppercase tracking-tighter ${cycleData.type === 'AZUL' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-pink-500/10 text-pink-400 border-pink-500/30'}`}>
+                     Ciclo {cycleData.type}
+                   </div>
+                 )}
               </div>
-              <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.3em]">Métricas Adicionais</p>
-              <p className="text-[9px] font-bold text-slate-800 uppercase max-w-[200px] leading-relaxed">Em desenvolvimento para expansão estatística</p>
+
+              <div className="p-6 flex flex-col gap-1 flex-1 overflow-y-auto">
+                 {[90, 80, 70, 60, 50, 40, 30, 20, 10].map((pct, idx) => {
+                   const stepData = cycleData.streak[idx];
+                   const isActive = !!stepData;
+                   const isNext = cycleData.streak.length === idx;
+                   const isPink = cycleData.type === 'ROSA';
+                   
+                   let bgClass = 'bg-white/[0.02] text-slate-600 border-transparent opacity-40';
+                   if (isActive) {
+                     bgClass = isPink 
+                        ? 'bg-pink-500/20 text-pink-200 border-pink-500/40 shadow-[0_0_15px_rgba(236,72,153,0.1)]' 
+                        : 'bg-blue-500/20 text-blue-200 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]';
+                   } else if (isNext) {
+                     bgClass = 'bg-white/5 text-slate-400 border-white/10 animate-pulse';
+                   }
+
+                   return (
+                     <div 
+                       key={pct} 
+                       className={`flex items-center justify-between px-4 py-2 rounded-lg border transition-all duration-500 ${bgClass}`}
+                       style={{ transform: isActive ? 'scale(1.02)' : 'scale(1)', marginLeft: `${idx * 4}px`, marginRight: `${idx * 4}px` }}
+                     >
+                        <div className="flex items-center gap-3">
+                           <span className="font-mono font-black text-xs">{pct}%</span>
+                           {isActive && <div className={`w-1 h-1 rounded-full ${isPink ? 'bg-pink-400' : 'bg-blue-400'}`}></div>}
+                        </div>
+                        
+                        {isActive ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold opacity-70 uppercase">Registrado</span>
+                            <span className="font-mono text-[11px] font-black">{formatPatternTime(stepData.time)}</span>
+                          </div>
+                        ) : isNext ? (
+                          <div className="flex items-center gap-2">
+                             <span className="text-[9px] font-black uppercase tracking-tighter opacity-50">Próximo Alvo</span>
+                             <Activity size={12} className="opacity-50" />
+                          </div>
+                        ) : (
+                          <Minus size={12} className="opacity-20" />
+                        )}
+                     </div>
+                   );
+                 })}
+              </div>
+
+              {cycleData.streak.length >= 7 && (
+                <div className="absolute bottom-4 left-6 right-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 animate-pulse">
+                   <AlertTriangle size={18} className="text-red-500 shrink-0" />
+                   <div className="leading-tight">
+                      <p className="text-[9px] font-black text-red-500 uppercase">Alerta de Exaustão</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase">Ciclo Longo Detectado. Alta chance de Reversão.</p>
+                   </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
