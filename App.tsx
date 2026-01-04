@@ -11,7 +11,10 @@ import {
   Zap,
   ChevronDown,
   Pin,
-  XCircle
+  XCircle,
+  TrendingUp,
+  TrendingDown,
+  Minus
 } from 'lucide-react';
 
 interface PatternResult {
@@ -272,11 +275,30 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
-            <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+            <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
               <div className="flex items-center gap-4">
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${flowPrevailingStyles}`}><Activity size={20}/></div>
-                 <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Catalogador de candles</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p></div>
+                 <div>
+                   <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Catalogador de candles</h3>
+                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p>
+                 </div>
               </div>
+              
+              <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
+                <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                  <TrendingUp size={12} className="text-emerald-500" />
+                  <span className="text-[11px] font-mono font-black text-emerald-400">{stats.green}</span>
+                </div>
+                <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                  <TrendingDown size={12} className="text-red-500" />
+                  <span className="text-[11px] font-mono font-black text-red-400">{stats.red}</span>
+                </div>
+                <div className="flex items-center gap-2 px-2">
+                  <Minus size={12} className="text-slate-500" />
+                  <span className="text-[11px] font-mono font-black text-slate-300">{stats.doji}</span>
+                </div>
+              </div>
+
               {selectedPatternTime && (
                 <button 
                   onClick={() => setSelectedPatternTime(null)}
