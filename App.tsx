@@ -16,7 +16,9 @@ import {
   Hash,
   AlertTriangle,
   ChevronsDown,
-  LayoutGrid
+  LayoutGrid,
+  BellRing,
+  ArrowRightCircle
 } from 'lucide-react';
 
 interface PatternResult {
@@ -226,6 +228,32 @@ const App: React.FC = () => {
     };
   }, [displayPatterns]);
 
+  // Lógica de Sinal por Desequilíbrio
+  const entrySignal = useMemo(() => {
+    const { azul, rosa, total } = patternCounts;
+    if (total < 10) return null;
+
+    // Cenários de desequilíbrio: 9x1, 8x2, 7x3
+    // Se rosa domina (>=7), entramos em AZUL (minoritário) buscando equilíbrio
+    if (rosa >= 7) {
+      return { 
+        target: 'AZUL' as const, 
+        ratio: `${rosa}x${azul}`, 
+        label: 'BUSCAR EQUILÍBRIO' 
+      };
+    }
+    // Se azul domina (>=7), entramos em ROSA (minoritário) buscando equilíbrio
+    if (azul >= 7) {
+      return { 
+        target: 'ROSA' as const, 
+        ratio: `${azul}x${rosa}`, 
+        label: 'BUSCAR EQUILÍBRIO' 
+      };
+    }
+
+    return null;
+  }, [patternCounts]);
+
   const flowPrevailingStyles = useMemo(() => {
     if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     const green = displayData.filter(c => isGreen(c.cor)).length;
@@ -373,23 +401,40 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 bg-black/40 rounded-lg p-1 border border-white/5">
-                  <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
-                    <Hash size={12} className="text-slate-400" />
-                    <span className="text-[11px] font-mono font-black text-white">{patternCounts.total}</span>
-                  </div>
-                  <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-mono font-black text-blue-400 leading-none">{patternCounts.azul}</span>
-                      <span className="text-[8px] font-mono text-blue-500/60 leading-none mt-0.5">{patternCounts.azulPct}%</span>
+                <div className="flex items-center gap-3">
+                  {/* Indicador de Sinal Ativo */}
+                  {entrySignal && (
+                    <div className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border animate-pulse shadow-lg ${entrySignal.target === 'AZUL' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-pink-500/20 border-pink-500/40 text-pink-400'}`}>
+                      <BellRing size={16} className="animate-bounce" />
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black uppercase tracking-widest opacity-70">Sinal Identificado</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-black uppercase tracking-tighter">Entrada: {entrySignal.target}</span>
+                          <span className="text-[10px] font-mono font-bold opacity-60">({entrySignal.ratio})</span>
+                        </div>
+                      </div>
+                      <ArrowRightCircle size={16} className="ml-2" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-2 h-8">
-                    <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-mono font-black text-pink-400 leading-none">{patternCounts.rosa}</span>
-                      <span className="text-[8px] font-mono text-pink-500/60 leading-none mt-0.5">{patternCounts.rosaPct}%</span>
+                  )}
+
+                  <div className="flex items-center gap-1 bg-black/40 rounded-lg p-1 border border-white/5 h-fit self-center">
+                    <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
+                      <Hash size={12} className="text-slate-400" />
+                      <span className="text-[11px] font-mono font-black text-white">{patternCounts.total}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 border-r border-white/10 h-8">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-mono font-black text-blue-400 leading-none">{patternCounts.azul}</span>
+                        <span className="text-[8px] font-mono text-blue-500/60 leading-none mt-0.5">{patternCounts.azulPct}%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 h-8">
+                      <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-mono font-black text-pink-400 leading-none">{patternCounts.rosa}</span>
+                        <span className="text-[8px] font-mono text-pink-500/60 leading-none mt-0.5">{patternCounts.rosaPct}%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -442,8 +487,7 @@ const App: React.FC = () => {
                        bgClass = 'bg-white/5 text-slate-400 border-white/10 animate-pulse';
                      }
 
-                     // Cálculo do afunilamento (indentações progressivas)
-                     const indentation = idx * 6; // pixels de indentação para cada lado
+                     const indentation = idx * 6;
 
                      return (
                        <div 
