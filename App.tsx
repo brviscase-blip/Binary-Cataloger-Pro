@@ -409,7 +409,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-              {/* Monitoramento de Ciclo (50%) */}
+              {/* Monitoramento de Ciclo (50%) com Formato de Funil */}
               <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 relative bg-[#090d16]/50">
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
                    <div className="flex items-center gap-3">
@@ -426,7 +426,7 @@ const App: React.FC = () => {
                    )}
                 </div>
 
-                <div className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto scrollbar-hide">
+                <div className="p-4 flex flex-col gap-1.5 flex-1 overflow-y-auto scrollbar-hide">
                    {[90, 80, 70, 60, 50, 40, 30, 20, 10].map((pct, idx) => {
                      const stepData = cycleData.streak[idx];
                      const isActive = !!stepData;
@@ -442,11 +442,18 @@ const App: React.FC = () => {
                        bgClass = 'bg-white/5 text-slate-400 border-white/10 animate-pulse';
                      }
 
+                     // Cálculo do afunilamento (indentações progressivas)
+                     const indentation = idx * 6; // pixels de indentação para cada lado
+
                      return (
                        <div 
                          key={pct} 
                          className={`flex items-center justify-between px-3 py-1.5 rounded-lg border transition-all duration-500 ${bgClass}`}
-                         style={{ transform: isActive ? 'scale(1.02)' : 'scale(1)' }}
+                         style={{ 
+                           transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                           marginLeft: `${indentation}px`,
+                           marginRight: `${indentation}px`
+                         }}
                        >
                           <div className="flex items-center gap-2">
                              <span className="font-mono font-black text-[10px]">{pct}%</span>
@@ -454,7 +461,7 @@ const App: React.FC = () => {
                           </div>
                           
                           {isActive ? (
-                            <span className="font-mono text-[10px] font-black">{formatPatternTime(stepData.time)}</span>
+                            <span className="font-mono text-[10px] font-black tracking-tighter">{formatPatternTime(stepData.time)}</span>
                           ) : isNext ? (
                              <Activity size={10} className="opacity-50" />
                           ) : (
