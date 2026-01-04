@@ -59,6 +59,7 @@ const App: React.FC = () => {
     const v = cor?.toUpperCase() || '';
     return v.includes('VERMELH') || v.includes('PUT') || v.includes('LOSS') || v.includes('BAIXA') || v.includes('SELL') || v.includes('VENDA');
   };
+  const isDoji = (cor: string) => !isGreen(cor) && !isRed(cor);
 
   const fetchData = useCallback(async (showSkeleton = false) => {
     if (isFetching.current) return;
@@ -70,7 +71,7 @@ const App: React.FC = () => {
         .from('eurusd_otc_completo')
         .select('datetime_mao, cor')
         .order('datetime_mao', { ascending: false })
-        .limit(120); // Busca até 120 registros para o card de Catalogador de candles
+        .limit(200); // Pegamos um pouco mais para garantir que achamos 10 padrões
 
       if (supabaseError) throw new Error(supabaseError.message);
 
@@ -130,22 +131,56 @@ const App: React.FC = () => {
     );
   };
 
-  // Padrões detectados (Mantido limite de 10 conforme turnos anteriores)
+  /**
+   * Catalogação de trás para frente (Padrão Contínuo):
+   * Sequência (2) + Correção (1) + Confirmação (1) = Entrada (1)
+   */
   const displayPatterns = useMemo(() => {
     const detected: PatternResult[] = [];
-    if (data.length < 4) return detected;
-    for (let i = 0; i <= data.length - 4; i++) {
-      const v0 = data[i], v1 = data[i + 1], v2 = data[i + 2], v3 = data[i + 3];
-      if (!isGreen(v0.cor) && isGreen(v1.cor) && isGreen(v2.cor)) {
-        detected.push({ time: v2.datetime_mao, type: isGreen(v3.cor) ? 'AZUL' : 'ROSA' });
-      } else if (!isRed(v0.cor) && isRed(v1.cor) && isRed(v2.cor)) {
-        detected.push({ time: v2.datetime_mao, type: isRed(v3.cor) ? 'AZUL' : 'ROSA' });
-      }
+    if (data.length < 5) return detected;
+
+    // Iteramos de trás para frente
+    for (let i = data.length - 1; i >= 4; i--) {
+      const c5_entrada = data[i];
+      const c4_confirma = data[i - 1];
+      const c3_correcao = data[i - 2];
+      const c2_seq2 = data[i - 3];
+      const c1_seq1 = data[i - 4];
+
+      // Ignora se houver dojis no meio do padrão base (opcional, mas comum)
+      if (isDoji(c1_seq1.cor) || isDoji(c2_seq2.cor) || isDoji(c3_correcao.cor) || isDoji(c4_confirma.cor)) continue;
+
+      // 1. Sequência de 2 (C1 e C2 iguais)
+      const seqValida = (isGreen(c1_seq1.cor) && isGreen(c2_seq2.cor)) || (isRed(c1_seq1.cor) && isRed(c2_seq2.cor));
+      if (!seqValida) continue;
+
+      // 2. Correção de 1 (C3 diferente da sequência)
+      const correcValida = isGreen(c3_correcao.cor) !== isGreen(c2_seq2.cor);
+      if (!correcValida) continue;
+
+      // 3. Confirmação de 1 (C4 igual à correção)
+      const confirmValida = isGreen(c4_confirma.cor) === isGreen(c3_correcao.cor);
+      if (!confirmValida) continue;
+
+      // Se chegamos aqui, o padrão existiu. C5 é o resultado da entrada.
+      // Se C5 seguiu a cor de C4 (Confirmação), é AZUL (Contínuo)
+      // Se C5 voltou para a cor da sequência (C1/C2), é ROSA (Reversão)
+      const isContinuo = isGreen(c5_entrada.cor) === isGreen(c4_confirma.cor);
+      
+      detected.push({ 
+        time: c5_entrada.datetime_mao, 
+        type: isContinuo ? 'AZUL' : 'ROSA' 
+      });
+
+      // Limite de 10 resultados
+      if (detected.length >= 10) break;
     }
-    return detected.slice(-10);
+
+    // Como buscamos de trás pra frente, o array está do mais novo pro mais antigo.
+    // Vamos reverter para que no grid o "mais novo" fique no final ou conforme a ordem de leitura.
+    return detected.reverse();
   }, [data]);
 
-  // Cor dinâmica baseada no que está visível no card de Catalogador de candles
   const flowPrevailingStyles = useMemo(() => {
     if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     const green = displayData.filter(c => isGreen(c.cor)).length;
@@ -159,7 +194,6 @@ const App: React.FC = () => {
     return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
   }, [displayData]);
 
-  // Cor dinâmica baseada no que está visível no card de Padrão Continuo
   const patternPrevailingStyles = useMemo(() => {
     if (displayPatterns.length === 0) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
     const azul = displayPatterns.filter(p => p.type === 'AZUL').length;
