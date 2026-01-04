@@ -138,7 +138,9 @@ const App: React.FC = () => {
     const isAnySelected = selectedPatternTime !== null;
 
     return (
-      <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-10 gap-3">
+      <div className={`grid gap-3 ${isPatternGrid 
+        ? 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15' 
+        : 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15 2xl:grid-cols-20'}`}>
         {items.map((item, idx) => {
           const itemTime = item.datetime_mao || item.time;
           const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
@@ -185,7 +187,7 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 10) break;
+      if (detected.length >= 15) break;
     }
 
     return detected.reverse();
@@ -227,7 +229,6 @@ const App: React.FC = () => {
     return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
   }, [displayPatterns]);
 
-  // Percentuais detalhados para o grid principal
   const flowPcts = useMemo(() => {
     const total = stats.total || 1;
     return {
@@ -263,7 +264,7 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 space-y-4">
+      <main className="flex-1 w-full p-4 md:p-6 space-y-4">
         <div className={`dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] transition-all duration-500 origin-top ${!isHeaderVisible ? 'scale-y-0 h-0 p-0 m-0 opacity-0 overflow-hidden' : 'scale-y-100 opacity-100'}`}>
           <div className="flex flex-col min-w-[200px] border-r border-white/5 pr-6">
             <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-1 flex items-center gap-2">— TERMINAL 2026 <Target size={10} className="text-blue-400" /></span>
@@ -295,8 +296,8 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
-          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
+          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all xl:col-span-8 2xl:col-span-9">
             <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
               <div className="flex items-center gap-4">
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${flowPrevailingStyles}`}><Activity size={20}/></div>
@@ -343,12 +344,12 @@ const App: React.FC = () => {
                 </button>
               )}
             </div>
-            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[500px] max-h-[700px] scroll-smooth">
+            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto scroll-smooth">
               {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(displayData)}
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 h-full">
+          <div className="flex flex-col gap-4 xl:col-span-4 2xl:col-span-3 h-full">
             <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden border-pink-500/10 transition-all shrink-0">
               <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
                 <div className="flex items-center gap-4">
@@ -356,7 +357,7 @@ const App: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">CLIQUE NO RESULTADO PARA RASTREAR NO GRID</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">RASTREAR NO GRID</p>
                     </div>
                   </div>
                 </div>
@@ -383,18 +384,16 @@ const App: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-[#090d16]">
-                <div className="px-6 h-[75px] flex items-center">
-                  {displayPatterns.length > 0 ? (
-                    <div className="w-full">
-                      {renderGrid(displayPatterns, true)}
-                    </div>
-                  ) : (
-                    <div className="w-full text-center text-[10px] uppercase font-black tracking-widest opacity-20">
-                      Aguardando...
-                    </div>
-                  )}
-                </div>
+              <div className="bg-[#090d16] p-6">
+                {displayPatterns.length > 0 ? (
+                  <div className="w-full">
+                    {renderGrid(displayPatterns, true)}
+                  </div>
+                ) : (
+                  <div className="w-full text-center py-4 text-[10px] uppercase font-black tracking-widest opacity-20">
+                    Aguardando...
+                  </div>
+                )}
               </div>
             </div>
 
@@ -402,14 +401,14 @@ const App: React.FC = () => {
               <div className="w-12 h-12 rounded-full border border-dashed border-white/10 flex items-center justify-center text-slate-700 group-hover:scale-110 transition-transform">
                 <BarChart3 size={20} />
               </div>
-              <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.3em]">Espaço para novos cards</p>
-              <p className="text-[9px] font-bold text-slate-800 uppercase max-w-[200px] leading-relaxed">Área reservada para expansão das métricas do catalogador</p>
+              <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.3em]">Métricas Adicionais</p>
+              <p className="text-[9px] font-bold text-slate-800 uppercase max-w-[200px] leading-relaxed">Em desenvolvimento para expansão estatística</p>
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="w-full py-6 px-6 border-t border-white/5 flex justify-between items-center bg-[#0a0e1a]">
+      <footer className="w-full py-6 px-6 border-t border-white/5 flex justify-between items-center bg-[#0a0e1a] mt-auto">
         <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">CATALOGADOR DE FLUXO &copy; 2026</p>
         <div className="flex gap-6 text-[10px] font-black uppercase tracking-widest text-slate-500">
            <a href="#" className="hover:text-blue-500 transition-colors">API STATUS</a><a href="#" className="hover:text-rose-500 transition-colors font-bold">VIP</a>
