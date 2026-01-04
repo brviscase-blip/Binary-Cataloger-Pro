@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { CandleData, Stats } from './types';
 import Candle from './components/Candle';
@@ -12,9 +12,8 @@ import {
   Target,
   Zap,
   ChevronDown,
-  Wifi,
-  WifiOff,
-  AlertCircle
+  AlertCircle,
+  WifiOff
 } from 'lucide-react';
 
 interface PatternResult {
@@ -32,6 +31,8 @@ const App: React.FC = () => {
   const [manausTime, setManausTime] = useState<string>('');
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'error'>('online');
+  const isFetching = useRef(false);
+  const pollTimer = useRef<number | null>(null);
   
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -51,7 +52,9 @@ const App: React.FC = () => {
   }, []);
 
   const fetchData = useCallback(async (showSkeleton = false) => {
+    if (isFetching.current) return;
     if (showSkeleton) setLoading(true);
+    isFetching.current = true;
     
     try {
       const { data: candles, error: supabaseError } = await supabase
@@ -71,36 +74,40 @@ const App: React.FC = () => {
         const winRateNum = total > 0 ? (green / (green + red || 1)) * 100 : 0;
         setStats({ total, green, red, doji, winRate: winRateNum.toFixed(1) + '%' });
         
-        // Reset error state on success
         setError(null);
         setConnectionStatus('online');
       }
     } catch (err: any) {
-      console.error('Erro de conexão Supabase:', err.message || err);
+      console.error('Supabase Sync Error:', err);
       setConnectionStatus('error');
-      
-      // Se for um erro de fetch, mostra uma mensagem amigável
-      if (err.message?.includes('Failed to fetch') || err.message?.includes('network')) {
-        setError('Erro de rede: Falha ao conectar ao banco de dados. Tentando reconectar...');
+      if (err.message?.includes('fetch') || err.name === 'TypeError') {
+        setError('Falha na Conexão: O navegador bloqueou a requisição ou o servidor está inacessível.');
       } else {
-        setError(err.message || 'Erro inesperado na sincronização.');
+        setError(err.message || 'Erro de sincronização.');
       }
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setManausTime(getManausTime());
-      fetchData(false);
-    }, 2000); // Polling a cada 2 segundos para evitar sobrecarga em caso de erro
-    return () => clearInterval(timer);
-  }, [getManausTime, fetchData]);
+    const runPoll = async () => {
+      await fetchData(false);
+      pollTimer.current = window.setTimeout(runPoll, 3000);
+    };
 
-  useEffect(() => {
-    fetchData(true);
-  }, [fetchData]);
+    runPoll();
+    
+    const timeInterval = setInterval(() => {
+      setManausTime(getManausTime());
+    }, 1000);
+
+    return () => {
+      if (pollTimer.current) clearTimeout(pollTimer.current);
+      clearInterval(timeInterval);
+    };
+  }, [fetchData, getManausTime]);
 
   const isGreen = (cor: string) => {
     const v = cor?.toUpperCase() || '';
@@ -152,7 +159,6 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
       
-      {/* Botão de Restauração (Flutuante quando escondido) */}
       {!isHeaderVisible && (
         <button 
           onClick={() => setIsHeaderVisible(true)}
@@ -162,7 +168,6 @@ const App: React.FC = () => {
         </button>
       )}
 
-      {/* Navbar Minimalista */}
       <nav className={`h-16 border-b border-white/5 bg-[#0a0e1a] px-6 flex items-center justify-between sticky top-0 z-50 transition-all duration-500 ${!isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
@@ -177,7 +182,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
             <div className={`w-2 h-2 rounded-full ${connectionStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              {connectionStatus === 'online' ? 'Servidor Online' : 'Tentando Conectar'}
+              {connectionStatus === 'online' ? 'Conectado' : 'Erro de Link'}
             </span>
           </div>
         </div>
@@ -185,16 +190,15 @@ const App: React.FC = () => {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => fetchData(true)}
-            className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-slate-400 border border-white/10 hover:text-white transition-colors"
-            title="Sincronizar Agora"
+            className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-lg text-slate-400 border border-white/10 hover:text-white transition-colors"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Sincronizar</span>
           </button>
           
           <button 
             onClick={() => setIsHeaderVisible(false)}
             className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 border border-white/10 hover:bg-white/10 transition-colors group"
-            title="Ocultar Cabeçalho"
           >
             <Pin size={18} className="group-hover:rotate-12 transition-transform" />
           </button>
@@ -203,15 +207,24 @@ const App: React.FC = () => {
 
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 space-y-4">
         
-        {/* Notificação de Erro de Rede */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 animate-pulse">
-            <AlertCircle size={18} className="text-red-500 shrink-0" />
-            <p className="text-xs font-bold text-red-400 uppercase tracking-widest">{error}</p>
+          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={20} className="text-red-500" />
+              <div>
+                <p className="text-xs font-black text-red-400 uppercase tracking-widest">{error}</p>
+                <p className="text-[10px] text-red-400/60 uppercase mt-0.5">Verifique se extensões de Adblock estão desativadas.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => fetchData(true)}
+              className="px-4 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded hover:bg-red-400 transition-colors"
+            >
+              Tentar Novamente
+            </button>
           </div>
         )}
 
-        {/* TERMINAL DE FLUXO */}
         <div className={`dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] guide-pink transition-all duration-500 origin-top ${!isHeaderVisible ? 'scale-y-0 h-0 p-0 m-0 opacity-0 overflow-hidden' : 'scale-y-100 opacity-100'}`}>
           <div className="flex flex-col min-w-[200px] border-r border-white/5 pr-6">
             <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-1 flex items-center gap-2">
@@ -272,10 +285,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* GRID PRINCIPAL: INVENTÁRIO (ESQ) E PADRÃO CONTÍNUO (DIR) */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          
-          {/* INVENTÁRIO DE CICLOS (ESQUERDA) */}
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 hover:border-emerald-500/30 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-4">
@@ -305,8 +315,17 @@ const App: React.FC = () => {
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
               {loading && data.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[300px] space-y-4">
-                  <div className="w-10 h-10 border-2 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
-                  <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[8px]">Sincronizando...</p>
+                  {connectionStatus === 'error' ? (
+                    <>
+                      <WifiOff size={40} className="text-slate-700" />
+                      <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[8px]">Sem Dados Disponíveis</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 border-2 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
+                      <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[8px]">Sincronizando...</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div 
@@ -333,7 +352,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* PADRÃO CONTÍNUO (DIREITA) */}
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden h-full border-pink-500/10 hover:border-pink-500/30 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] guide-pink">
               <div className="flex items-center gap-4">
@@ -362,9 +380,12 @@ const App: React.FC = () => {
 
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
               {patterns.length > 0 ? (
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                <div 
+                  className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3"
+                  dir="rtl"
+                >
                   {patterns.map((p, idx) => (
-                    <div key={`${p.time}-${idx}`} className="animate-fade-in" style={{animationDelay: `${idx * 0.01}s`}}>
+                    <div key={`${p.time}-${idx}`} dir="ltr" className="animate-fade-in" style={{animationDelay: `${idx * 0.01}s`}}>
                       <Candle 
                         time={p.time} 
                         color={p.type === 'AZUL' ? 'AZUL' : 'ROSA'} 
