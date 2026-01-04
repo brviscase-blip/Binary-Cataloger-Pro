@@ -18,7 +18,8 @@ import {
   ChevronsDown,
   LayoutGrid,
   BellRing,
-  ArrowRightCircle
+  ArrowRightCircle,
+  Shuffle
 } from 'lucide-react';
 
 interface PatternResult {
@@ -228,31 +229,45 @@ const App: React.FC = () => {
     };
   }, [displayPatterns]);
 
-  // Lógica de Sinal por Desequilíbrio
+  // Lógica de Sinal por Desequilíbrio e Cenário 5x5
   const entrySignal = useMemo(() => {
     const { azul, rosa, total } = patternCounts;
     if (total < 10) return null;
 
+    // Cenário 5x5: Analisar o último resultado e entrar no oposto
+    if (azul === 5 && rosa === 5) {
+      // O displayPatterns está em ordem cronológica (index 9 é o mais recente)
+      const lastPattern = displayPatterns[displayPatterns.length - 1];
+      // Fix: Applied type casting to the literal result instead of the variable reference 'as const'
+      const target = (lastPattern.type === 'AZUL' ? 'ROSA' : 'AZUL') as 'AZUL' | 'ROSA';
+      return {
+        target,
+        ratio: '5x5',
+        label: 'QUEBRA DE TENDÊNCIA',
+        icon: <Shuffle size={16} className="animate-pulse" />
+      };
+    }
+
     // Cenários de desequilíbrio: 9x1, 8x2, 7x3
-    // Se rosa domina (>=7), entramos em AZUL (minoritário) buscando equilíbrio
     if (rosa >= 7) {
       return { 
         target: 'AZUL' as const, 
         ratio: `${rosa}x${azul}`, 
-        label: 'BUSCAR EQUILÍBRIO' 
+        label: 'BUSCAR EQUILÍBRIO',
+        icon: <BellRing size={16} className="animate-bounce" />
       };
     }
-    // Se azul domina (>=7), entramos em ROSA (minoritário) buscando equilíbrio
     if (azul >= 7) {
       return { 
         target: 'ROSA' as const, 
         ratio: `${azul}x${rosa}`, 
-        label: 'BUSCAR EQUILÍBRIO' 
+        label: 'BUSCAR EQUILÍBRIO',
+        icon: <BellRing size={16} className="animate-bounce" />
       };
     }
 
     return null;
-  }, [patternCounts]);
+  }, [patternCounts, displayPatterns]);
 
   const flowPrevailingStyles = useMemo(() => {
     if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
@@ -405,9 +420,9 @@ const App: React.FC = () => {
                   {/* Indicador de Sinal Ativo */}
                   {entrySignal && (
                     <div className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border animate-pulse shadow-lg ${entrySignal.target === 'AZUL' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-pink-500/20 border-pink-500/40 text-pink-400'}`}>
-                      <BellRing size={16} className="animate-bounce" />
+                      {entrySignal.icon}
                       <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase tracking-widest opacity-70">Sinal Identificado</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest opacity-70">{entrySignal.label}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-[12px] font-black uppercase tracking-tighter">Entrada: {entrySignal.target}</span>
                           <span className="text-[10px] font-mono font-bold opacity-60">({entrySignal.ratio})</span>
