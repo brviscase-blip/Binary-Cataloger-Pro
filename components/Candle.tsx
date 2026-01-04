@@ -7,35 +7,30 @@ interface CandleProps {
 }
 
 const Candle: React.FC<CandleProps> = ({ time, color }) => {
-  // Normaliza a cor e mapeia para classes do Tailwind
+  // Mapeamento de cores robusto e profissional
   const getColorStyles = (c: string) => {
     const normalized = c.toUpperCase();
-    if (normalized.includes('VERDE') || normalized.includes('CALL') || normalized.includes('WIN')) {
-      return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]';
+    
+    // Verdes (Alta)
+    if (normalized.includes('VERDE') || normalized.includes('CALL') || normalized.includes('WIN') || normalized.includes('ALTA') || normalized.includes('BUY') || normalized.includes('COMPRA')) {
+      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.05)]';
     }
-    if (normalized.includes('VERMELHO') || normalized.includes('PUT') || normalized.includes('LOSS')) {
-      return 'bg-rose-500/20 text-rose-400 border-rose-500/40 hover:bg-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.1)]';
+    
+    // Vermelhos (Baixa)
+    if (normalized.includes('VERMELHO') || normalized.includes('PUT') || normalized.includes('LOSS') || normalized.includes('BAIXA') || normalized.includes('SELL') || normalized.includes('VENDA')) {
+      return 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-400/50 shadow-[0_0_20px_rgba(244,63,94,0.05)]';
     }
-    // Padrão Doji (Cinza)
-    return 'bg-slate-500/20 text-slate-400 border-slate-500/40 hover:bg-slate-500/30';
+    
+    // Doji / Empate (Cinza)
+    return 'bg-slate-500/10 text-slate-400 border-slate-700 hover:bg-slate-500/20 hover:border-slate-500 shadow-none';
   };
 
-  // Formata o tempo para HH:mm lidando com formatos ISO (T) ou Espaço
+  // Extração estrita de HH:mm
   const formatTimeHoursMinutes = (t: string) => {
     try {
-      // Tenta extrair apenas o padrão HH:mm usando Regex para maior precisão
       const match = t.match(/(\d{2}):(\d{2})/);
-      if (match) {
-        return `${match[1]}:${match[2]}`;
-      }
-      
-      // Fallback: tenta separar por T ou Espaço
-      const timePart = t.includes('T') ? t.split('T')[1] : (t.includes(' ') ? t.split(' ')[1] : t);
-      const [h, m] = timePart.split(':');
-      
-      if (!h || !m) return '--:--';
-      
-      return `${h.substring(0, 2).padStart(2, '0')}:${m.substring(0, 2).padStart(2, '0')}`;
+      if (match) return `${match[1]}:${match[2]}`;
+      return '--:--';
     } catch (e) {
       return '--:--';
     }
@@ -43,15 +38,14 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
 
   return (
     <div 
-      title={`Data completa: ${time} | Cor: ${color}`}
       className={`
         flex items-center justify-center 
-        p-2.5 rounded-lg border transition-all duration-300 
-        cursor-help select-none min-w-[64px]
+        py-3 px-1 rounded-xl border transition-all duration-300 
+        cursor-default select-none group
         ${getColorStyles(color)}
       `}
     >
-      <span className="font-mono text-sm font-bold tracking-wider">
+      <span className="font-mono text-[13px] font-black tracking-tight group-hover:scale-110 transition-transform">
         {formatTimeHoursMinutes(time)}
       </span>
     </div>
