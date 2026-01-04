@@ -36,6 +36,7 @@ interface SignalOutcome {
   time: string;
   type: 'WIN' | 'LOSS';
   signalName: string;
+  cycleType: 'AZUL' | 'ROSA';
 }
 
 const App: React.FC = () => {
@@ -173,7 +174,7 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 25) break; 
+      if (detected.length >= 30) break; 
     }
 
     return detected.reverse();
@@ -227,11 +228,12 @@ const App: React.FC = () => {
           id: `${currentPattern.time}-${i}`,
           time: currentPattern.time,
           type: currentPattern.type === target ? 'WIN' : 'LOSS',
-          signalName: sName
+          signalName: sName,
+          cycleType: target
         });
       }
 
-      if (outcomes.length >= 5) break;
+      if (outcomes.length >= 10) break;
     }
 
     return outcomes;
@@ -598,24 +600,28 @@ const App: React.FC = () => {
                    </div>
                    <div className="flex flex-col items-end">
                       <span className={`text-lg font-black leading-none ${Number(winRateHistory) > 70 ? 'text-emerald-400' : 'text-white'}`}>{winRateHistory}%</span>
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Últimos 5</span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Últimos 10</span>
                    </div>
                 </div>
 
-                <div className="p-4 flex flex-col gap-2.5 flex-1">
+                <div className="p-4 flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-hide">
                   {performanceHistory.length > 0 ? (
                     <div className="space-y-2.5">
                       {performanceHistory.map((outcome) => (
                         <div key={outcome.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-all group">
                            <div className="flex items-center gap-3">
-                              {/* Removido o efeito de glow/sombra (shadow-[...]) conforme solicitado */}
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                                 {outcome.type.slice(0,1)}
                               </div>
                               <div className="flex flex-col">
-                                <span className={`text-[11px] font-black tracking-tight ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                  {outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[11px] font-black tracking-tight ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase ${outcome.cycleType === 'AZUL' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'}`}>
+                                    Ciclo {outcome.cycleType}
+                                  </span>
+                                </div>
                                 <span className="text-[8px] font-bold text-slate-600 uppercase tabular-nums">Sinal: {outcome.signalName}</span>
                               </div>
                            </div>
@@ -635,7 +641,7 @@ const App: React.FC = () => {
 
                 <div className="mt-auto px-6 py-3 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
                    <div className="flex gap-1.5">
-                      {performanceHistory.map((o) => (
+                      {performanceHistory.slice(0, 10).map((o) => (
                         <div key={`dot-${o.id}`} className={`w-1.5 h-1.5 rounded-full ${o.type === 'WIN' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                       ))}
                    </div>
