@@ -125,29 +125,34 @@ const App: React.FC = () => {
 
   const displayPatterns = useMemo(() => {
     const detected: PatternResult[] = [];
-    if (data.length < 5) return detected;
+    if (data.length < 4) return detected;
 
-    for (let i = data.length - 1; i >= 4; i--) {
-      const entry = data[i];
-      const confirm = data[i - 1];
-      const correction = data[i - 2];
-      const seq2 = data[i - 3];
-      const seq1 = data[i - 4];
+    // Lógica ajustada para ciclos de 4 velas: [Base, Meio1, Meio2, Sinal]
+    for (let i = data.length - 1; i >= 3; i--) {
+      const signal = data[i];
+      const mid2 = data[i - 1];
+      const mid1 = data[i - 2];
+      const base = data[i - 3];
 
-      const isSequence = (isGreen(seq1.cor) && isGreen(seq2.cor)) || (isRed(seq1.cor) && isRed(seq2.cor));
-      if (!isSequence) continue;
+      // Ignora se houver doji em qualquer parte do padrão
+      if (isDoji(base.cor) || isDoji(mid1.cor) || isDoji(mid2.cor) || isDoji(signal.cor)) continue;
 
-      const isCorrection = isGreen(correction.cor) !== isGreen(seq2.cor) && !isDoji(correction.cor);
-      if (!isCorrection) continue;
+      // 1. As duas velas centrais devem ser da mesma cor
+      const midsMatch = isGreen(mid1.cor) === isGreen(mid2.cor);
+      if (!midsMatch) continue;
 
-      const isConfirmation = isGreen(confirm.cor) === isGreen(correction.cor);
-      if (!isConfirmation) continue;
+      // 2. A vela base deve ser de cor diferente das centrais
+      const baseDiffers = isGreen(base.cor) !== isGreen(mid1.cor);
+      if (!baseDiffers) continue;
 
-      const isContinuo = isGreen(entry.cor) === isGreen(confirm.cor);
+      // 3. Resultado:
+      // AZUL (Continuidade) se o sinal for igual ao "Meio"
+      // ROSA (Ciclo/Reversão) se o sinal for igual à "Base" (diferente do meio)
+      const isContinuity = isGreen(signal.cor) === isGreen(mid1.cor);
       
       detected.push({ 
-        time: entry.datetime_mao, 
-        type: isContinuo ? 'AZUL' : 'ROSA' 
+        time: signal.datetime_mao, 
+        type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
       if (detected.length >= 10) break;
@@ -236,7 +241,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-4">
@@ -244,7 +249,7 @@ const App: React.FC = () => {
                  <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Catalogador de candles</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p></div>
               </div>
             </div>
-            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
+            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[500px] max-h-[700px]">
               {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(displayData)}
             </div>
             <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest">
@@ -253,24 +258,55 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden h-full border-pink-500/10 transition-all">
-            <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${patternPrevailingStyles}`}><Zap size={20}/></div>
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p>
+          <div className="flex flex-col gap-4 h-full">
+            <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden border-pink-500/10 transition-all shrink-0">
+              <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${patternPrevailingStyles}`}><Zap size={20}/></div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p>
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              <div className="bg-[#090d16]">
+                <div className="px-6 h-[60px] flex items-center">
+                  {displayPatterns.length > 0 ? (
+                    <div className="w-full">
+                      {renderGrid(displayPatterns)}
+                    </div>
+                  ) : (
+                    <div className="w-full text-center text-[10px] uppercase font-black tracking-widest opacity-20">
+                      Aguardando...
+                    </div>
+                  )}
+                </div>
+                
+                <div className="px-6 py-4 flex items-center gap-3 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="text-[9px] font-black uppercase text-slate-500">AZUL (P1)</span>
+                  </div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                    <span className="text-[9px] font-black uppercase text-slate-500">ROSA (P2)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-3 bg-black/40 border-t border-white/5 min-h-[35px]">
+              </div>
             </div>
-            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[100px] max-h-[100px]">
-              {displayPatterns.length > 0 ? renderGrid(displayPatterns) : <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-20">Aguardando Padrões...</div>}
-            </div>
-            <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex items-center gap-3">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span><span className="text-[9px] font-black uppercase text-slate-500">AZUL (P1)</span>
-              <span className="w-2 h-2 rounded-full bg-pink-500 ml-2"></span><span className="text-[9px] font-black uppercase text-slate-500">ROSA (P2)</span>
+
+            <div className="flex-1 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.01] flex flex-col items-center justify-center gap-3 p-12 text-center group transition-all hover:bg-white/[0.02] hover:border-white/10">
+              <div className="w-12 h-12 rounded-full border border-dashed border-white/10 flex items-center justify-center text-slate-700 group-hover:scale-110 transition-transform">
+                <BarChart3 size={20} />
+              </div>
+              <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.3em]">Espaço para novos cards</p>
+              <p className="text-[9px] font-bold text-slate-800 uppercase max-w-[200px] leading-relaxed">Área reservada para expansão das métricas do catalogador</p>
             </div>
           </div>
         </div>
