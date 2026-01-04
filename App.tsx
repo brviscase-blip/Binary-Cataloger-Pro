@@ -187,7 +187,6 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      // NOVO LIMITE: 10
       if (detected.length >= 10) break;
     }
 
@@ -277,33 +276,7 @@ const App: React.FC = () => {
       </nav>
 
       <main className="flex-1 w-full p-4 md:p-6 space-y-4">
-        <div className={`dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] transition-all duration-500 origin-top ${!isHeaderVisible ? 'scale-y-0 h-0 p-0 m-0 opacity-0 overflow-hidden' : 'scale-y-100 opacity-100'}`}>
-          <div className="flex flex-col min-w-[200px] border-r border-white/5 pr-6">
-            <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-1 flex items-center gap-2">— TERMINAL 2026 <Target size={10} className="text-blue-400" /></span>
-            <h2 className="text-lg font-black text-white uppercase tracking-tight">Fluxo EUR/USD</h2>
-          </div>
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-8 w-full">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase"><span className="text-slate-400">Amostra</span><span className="text-white font-mono">{stats.total} VELAS</span></div>
-              <div className="progress-bar"><div className="progress-fill bg-blue-500/40" style={{ width: '100%' }}></div></div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase"><span className="text-emerald-500">Assertividade</span><span className="text-white font-mono">{stats.winRate}</span></div>
-              <div className="progress-bar"><div className="progress-fill bg-emerald-500" style={{ width: stats.winRate }}></div></div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase"><span className="text-blue-400">Call</span><span className="text-white font-mono">{stats.green}</span></div>
-              <div className="progress-bar"><div className="progress-fill bg-blue-400" style={{ width: `${(stats.green/stats.total)*100}%` }}></div></div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase"><span className="text-slate-500">Put</span><span className="text-white font-mono">{stats.red}</span></div>
-              <div className="progress-bar"><div className="progress-fill bg-slate-500" style={{ width: `${(stats.red/stats.total)*100}%` }}></div></div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 pl-6 border-l border-white/5 opacity-50">
-            <Target size={20} className="text-white/20" />
-          </div>
-        </div>
+        {/* Barra de estatísticas removida conforme solicitado */}
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
