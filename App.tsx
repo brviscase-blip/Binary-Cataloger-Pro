@@ -187,7 +187,8 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 15) break;
+      // NOVO LIMITE: 10
+      if (detected.length >= 10) break;
     }
 
     return detected.reverse();
@@ -304,9 +305,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Layout 50/50 em telas XL */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
-          {/* Lado Esquerdo - 50% */}
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
               <div className="flex items-center gap-4">
@@ -359,7 +358,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Lado Direito - 50% */}
           <div className="flex flex-col gap-4 h-full">
             <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden border-pink-500/10 transition-all shrink-0">
               <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
