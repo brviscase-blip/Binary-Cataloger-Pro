@@ -45,15 +45,39 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
       return 'bg-red-500/10 text-red-400 border-red-500/30';
     }
     
+    // Doji / Cinza
     return 'bg-slate-500/10 text-slate-400 border-slate-700/50';
   };
 
-  const formatTimeMinutesSeconds = (t: string) => {
+  /**
+   * Formatação para HH:MM
+   * Extrai Horas e Minutos da string datetime_mao
+   */
+  const formatTimeHHMM = (t: string) => {
     if (!t) return '--:--';
+    
     try {
-      // Extrai os minutos e segundos (MM:SS) da string de data/hora
-      const match = t.match(/:(\d{2}):(\d{2})/);
-      return match ? `${match[1]}:${match[2]}` : '--:--';
+      // 1. Extrair a parte do tempo (HH:MM:SS)
+      const rawPart = t.includes(' ') ? t.split(' ')[1] : t;
+      
+      // 2. Limpar caracteres não numéricos exceto os dois pontos
+      const cleanPart = rawPart.replace(/[^\d:]/g, '');
+      
+      const parts = cleanPart.split(':');
+      
+      // Caso 1: HH:MM:SS -> Retorna HH:MM
+      if (parts.length >= 2) {
+        const hh = parts[0].slice(-2).padStart(2, '0');
+        const mm = parts[1].padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+      
+      // Caso emergencial: tenta extrair os primeiros 4 dígitos como HHMM
+      if (cleanPart.length >= 4) {
+        return cleanPart.slice(0, 4).replace(/(..)(..)/, '$1:$2');
+      }
+
+      return '--:--';
     } catch (e) {
       return '--:--';
     }
@@ -68,7 +92,7 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
       `}
     >
       <span className="font-mono text-[11px] font-black tabular-nums tracking-tighter">
-        {formatTimeMinutesSeconds(time)}
+        {formatTimeHHMM(time)}
       </span>
     </div>
   );

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from './supabaseClient';
 import { CandleData, Stats } from './types';
 import Candle from './components/Candle';
@@ -8,10 +8,13 @@ import {
   Activity, 
   RefreshCw,
   Pin,
-  TrendingUp,
   Clock,
   Target,
-  Zap
+  Zap,
+  ChevronDown,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react';
 
 interface PatternResult {
@@ -25,7 +28,11 @@ interface PatternResult {
 const App: React.FC = () => {
   const [data, setData] = useState<CandleData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [manausTime, setManausTime] = useState<string>('');
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'error'>('online');
+  
   const [stats, setStats] = useState<Stats>({
     total: 0,
     green: 0,
@@ -45,17 +52,15 @@ const App: React.FC = () => {
 
   const fetchData = useCallback(async (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
+    
     try {
-      const { data: candles, error } = await supabase
+      const { data: candles, error: supabaseError } = await supabase
         .from('eurusd_otc_completo')
         .select('datetime_mao, cor')
         .order('datetime_mao', { ascending: false })
         .limit(100); 
 
-      if (error) {
-        console.error('Supabase Error:', error.message, error.details, error.hint);
-        throw new Error(error.message);
-      }
+      if (supabaseError) throw supabaseError;
 
       if (candles) {
         setData(candles);
@@ -65,9 +70,21 @@ const App: React.FC = () => {
         const doji = total - (green + red);
         const winRateNum = total > 0 ? (green / (green + red || 1)) * 100 : 0;
         setStats({ total, green, red, doji, winRate: winRateNum.toFixed(1) + '%' });
+        
+        // Reset error state on success
+        setError(null);
+        setConnectionStatus('online');
       }
     } catch (err: any) {
-      console.error('Erro detalhado ao buscar dados:', err.message || err);
+      console.error('Erro de conexão Supabase:', err.message || err);
+      setConnectionStatus('error');
+      
+      // Se for um erro de fetch, mostra uma mensagem amigável
+      if (err.message?.includes('Failed to fetch') || err.message?.includes('network')) {
+        setError('Erro de rede: Falha ao conectar ao banco de dados. Tentando reconectar...');
+      } else {
+        setError(err.message || 'Erro inesperado na sincronização.');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,7 +94,7 @@ const App: React.FC = () => {
     const timer = setInterval(() => {
       setManausTime(getManausTime());
       fetchData(false);
-    }, 1000);
+    }, 2000); // Polling a cada 2 segundos para evitar sobrecarga em caso de erro
     return () => clearInterval(timer);
   }, [getManausTime, fetchData]);
 
@@ -134,20 +151,68 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
+      
+      {/* Botão de Restauração (Flutuante quando escondido) */}
+      {!isHeaderVisible && (
+        <button 
+          onClick={() => setIsHeaderVisible(true)}
+          className="fixed top-4 right-6 z-[100] w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-xl shadow-blue-500/30 border border-blue-400/50 hover:bg-blue-500 transition-all hover:scale-105"
+        >
+          <ChevronDown size={20} />
+        </button>
+      )}
+
       {/* Navbar Minimalista */}
-      <nav className="h-16 border-b border-white/5 bg-[#0a0e1a] px-6 flex items-center sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-            <BarChart3 size={18} className="text-black" />
+      <nav className={`h-16 border-b border-white/5 bg-[#0a0e1a] px-6 flex items-center justify-between sticky top-0 z-50 transition-all duration-500 ${!isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
+              <BarChart3 size={18} className="text-black" />
+            </div>
+            <h1 className="text-white font-black tracking-tighter text-lg uppercase">Cataloger<span className="text-blue-500">Pro</span></h1>
           </div>
-          <h1 className="text-white font-black tracking-tighter text-lg uppercase">Cataloger<span className="text-blue-500">Pro</span></h1>
+
+          <div className="h-6 w-[1px] bg-white/10 hidden md:block"></div>
+
+          <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+            <div className={`w-2 h-2 rounded-full ${connectionStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {connectionStatus === 'online' ? 'Servidor Online' : 'Tentando Conectar'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => fetchData(true)}
+            className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-slate-400 border border-white/10 hover:text-white transition-colors"
+            title="Sincronizar Agora"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+          
+          <button 
+            onClick={() => setIsHeaderVisible(false)}
+            className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 border border-white/10 hover:bg-white/10 transition-colors group"
+            title="Ocultar Cabeçalho"
+          >
+            <Pin size={18} className="group-hover:rotate-12 transition-transform" />
+          </button>
         </div>
       </nav>
 
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 space-y-4">
         
+        {/* Notificação de Erro de Rede */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 animate-pulse">
+            <AlertCircle size={18} className="text-red-500 shrink-0" />
+            <p className="text-xs font-bold text-red-400 uppercase tracking-widest">{error}</p>
+          </div>
+        )}
+
         {/* TERMINAL DE FLUXO */}
-        <div className="dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] guide-pink">
+        <div className={`dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] guide-pink transition-all duration-500 origin-top ${!isHeaderVisible ? 'scale-y-0 h-0 p-0 m-0 opacity-0 overflow-hidden' : 'scale-y-100 opacity-100'}`}>
           <div className="flex flex-col min-w-[200px] border-r border-white/5 pr-6">
             <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-1 flex items-center gap-2">
               — ATIVOS 2026 <Pin size={10} className="text-blue-400" fill="currentColor" />
@@ -211,10 +276,10 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           
           {/* INVENTÁRIO DE CICLOS (ESQUERDA) */}
-          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full">
+          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 hover:border-emerald-500/30 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
                     <Activity size={20}/>
                  </div>
                  <div>
@@ -237,7 +302,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto max-h-[600px]">
+            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
               {loading && data.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[300px] space-y-4">
                   <div className="w-10 h-10 border-2 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
@@ -269,10 +334,10 @@ const App: React.FC = () => {
           </div>
 
           {/* PADRÃO CONTÍNUO (DIREITA) */}
-          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden h-full">
+          <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden h-full border-pink-500/10 hover:border-pink-500/30 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] guide-pink">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 border border-pink-500/20">
+                <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 border border-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.1)]">
                     <Zap size={20}/>
                 </div>
                 <div>
@@ -295,7 +360,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto max-h-[600px]">
+            <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
               {patterns.length > 0 ? (
                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                   {patterns.map((p, idx) => (
