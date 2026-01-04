@@ -9,8 +9,16 @@ import {
   BarChart3, 
   Activity, 
   ArrowUpCircle, 
-  ArrowDownCircle, 
-  CircleSlash
+  ArrowDownCircle,
+  LayoutDashboard,
+  FileText,
+  RefreshCw,
+  Trophy,
+  Calendar,
+  Settings,
+  Bell,
+  Sun,
+  LogOut
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -26,7 +34,6 @@ const App: React.FC = () => {
     winRate: '0%'
   });
 
-  // Função para obter o horário de Manaus formatado
   const getManausTime = useCallback(() => {
     return new Intl.DateTimeFormat('pt-BR', {
       timeZone: 'America/Manaus',
@@ -49,22 +56,19 @@ const App: React.FC = () => {
 
       if (candles) {
         setData(candles);
-        
-        // Cálculo de estatísticas
         const total = candles.length;
         const green = candles.filter(c => {
+          if (!c.cor) return false;
           const v = c.cor.toUpperCase();
           return v.includes('VERDE') || v.includes('CALL') || v.includes('WIN') || v.includes('ALTA') || v.includes('BUY') || v.includes('COMPRA');
         }).length;
-        
         const red = candles.filter(c => {
+          if (!c.cor) return false;
           const v = c.cor.toUpperCase();
           return v.includes('VERMELHO') || v.includes('PUT') || v.includes('LOSS') || v.includes('BAIXA') || v.includes('SELL') || v.includes('VENDA');
         }).length;
-
         const doji = total - (green + red);
         const winRate = total > 0 ? ((green / (green + red || 1)) * 100).toFixed(1) + '%' : '0%';
-
         setStats({ total, green, red, doji, winRate });
       }
     } catch (err) {
@@ -74,158 +78,187 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Relógio em tempo real e Sincronização automática no segundo :01
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
       const seconds = now.getSeconds();
       setManausTime(getManausTime());
-
-      // Sincroniza exatamente quando o segundo chega em 01
-      // A verificação lastSyncSecond evita disparos múltiplos no mesmo segundo
-      if (seconds === 1 && lastSyncSecond.current !== 1) {
-        fetchData(false); // Atualização silenciosa
+      if (seconds === 2 && lastSyncSecond.current !== 2) {
+        fetchData(false);
       }
       lastSyncSecond.current = seconds;
     }, 1000);
     return () => clearInterval(timer);
   }, [getManausTime, fetchData]);
 
-  // Busca inicial ao carregar o app
   useEffect(() => {
     fetchData(true);
   }, [fetchData]);
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in bg-[#0f172a]">
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-800/10 p-6 rounded-2xl border border-slate-700/20 backdrop-blur-md">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-emerald-400 font-bold tracking-widest text-[10px] uppercase">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Live Market Feed
+    <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in">
+      {/* Navbar Superior (Estilo Finanza Pro) */}
+      <nav className="h-16 border-b border-white/5 bg-[#0a0e1a] px-6 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
+              <BarChart3 size={18} className="text-black" />
+            </div>
+            <h1 className="text-white font-black tracking-tighter text-lg">CATALOGER<span className="text-blue-500">PRO</span></h1>
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter flex items-center gap-3">
-            EUR/USD <span className="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded-md font-bold tracking-normal">OTC</span>
-          </h1>
-          <p className="text-slate-400 text-sm font-medium">Análise de fluxo institucional e catalogação de ciclos.</p>
-        </div>
-        
-        <div className="text-right">
-          <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.2em] mb-1">Manaus (AM)</p>
-          <div className="flex items-center gap-2 justify-end">
-            <p className="text-white font-mono text-2xl font-black tabular-nums tracking-wider">{manausTime || '--:--:--'}</p>
-          </div>
-        </div>
-      </header>
-
-      {/* Stats Grid - 4 colunas (Amostra, Win Rate, Call, Put) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard 
-          label="Amostra" 
-          value={stats.total} 
-          icon={<BarChart3 size={20} />} 
-          colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20"
-        />
-        <SummaryCard 
-          label="Win Rate" 
-          value={stats.winRate} 
-          icon={<TrendingUp size={20} />} 
-          colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-        />
-        <SummaryCard 
-          label="Call" 
-          value={stats.green} 
-          icon={<ArrowUpCircle size={20} />} 
-          colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-        />
-        <SummaryCard 
-          label="Put" 
-          value={stats.red} 
-          icon={<ArrowDownCircle size={20} />} 
-          colorClass="bg-rose-500/10 text-rose-400 border-rose-500/20"
-        />
-      </div>
-
-      {/* Main Cataloging Section */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-        <div className="px-8 py-6 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Histórico de Velas</h2>
-            <span className="h-1 w-1 rounded-full bg-slate-700"></span>
-            <span className="text-xs font-bold text-slate-400">M1 Timeframe</span>
-          </div>
-          <div className="flex gap-6 text-[10px] uppercase font-black tracking-widest">
-             <div className="flex items-center gap-2 text-emerald-500">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/30 border border-emerald-500"></span>
-                Compra
-             </div>
-             <div className="flex items-center gap-2 text-rose-500">
-                <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/30 border border-rose-500"></span>
-                Venda
-             </div>
-             <div className="flex items-center gap-2 text-slate-500">
-                <span className="w-2.5 h-2.5 rounded-sm bg-slate-500/30 border border-slate-500"></span>
-                Doji
-             </div>
+          
+          <div className="hidden lg:flex items-center gap-6">
+            <a href="#" className="nav-item-active text-xs font-bold flex items-center gap-2 uppercase tracking-widest"><FileText size={14}/> Registro</a>
+            <a href="#" className="text-slate-500 text-xs font-bold flex items-center gap-2 hover:text-white transition-colors uppercase tracking-widest"><RefreshCw size={14}/> Fluxo</a>
+            <a href="#" className="text-slate-500 text-xs font-bold flex items-center gap-2 hover:text-white transition-colors uppercase tracking-widest"><LayoutDashboard size={14}/> Dashboard</a>
+            <a href="#" className="text-slate-500 text-xs font-bold flex items-center gap-2 hover:text-white transition-colors uppercase tracking-widest"><Trophy size={14}/> Conquistas</a>
+            <a href="#" className="text-slate-500 text-xs font-bold flex items-center gap-2 hover:text-white transition-colors uppercase tracking-widest"><Calendar size={14}/> Mensal</a>
           </div>
         </div>
 
-        <div className="p-8">
-          {loading && data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 space-y-6">
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                   <Activity size={24} className="text-blue-500 animate-pulse" />
-                </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+             <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Sincronizando...</span>
+          </div>
+          <button className="text-slate-500 hover:text-white p-2"><Bell size={18}/></button>
+          <button className="text-slate-500 hover:text-white p-2"><Sun size={18}/></button>
+          <button className="text-rose-500 hover:text-rose-400 p-2"><LogOut size={18}/></button>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main className="flex-1 w-full max-w-[1600px] mx-auto p-6 md:p-8 space-y-8">
+        {/* Header de Ativo */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+           <div>
+              <p className="text-rose-500 text-[10px] font-black uppercase tracking-[0.2em] mb-1">— ATIVOS 2026</p>
+              <h2 className="text-2xl font-black text-white uppercase tracking-tight">TERMINAL DE FLUXO PATRIMONIAL</h2>
+           </div>
+           
+           <div className="flex items-center gap-4">
+              <div className="text-right">
+                 <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest">PATRIMÔNIO ATIVO</p>
+                 <p className="text-xl font-black text-white">EUR/USD <span className="text-slate-500">OTC</span></p>
               </div>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">Sincronizando Terminal...</p>
-            </div>
-          ) : (
-            <div 
-              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-4"
-              dir="rtl"
-            >
-              {data.map((candle, idx) => (
-                <div key={`${candle.datetime_mao}-${idx}`} dir="ltr">
-                  <Candle 
-                    time={candle.datetime_mao} 
-                    color={candle.cor} 
-                  />
-                </div>
-              ))}
-              
-              {data.length === 0 && !loading && (
-                <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-3xl" dir="ltr">
-                  <Activity size={48} className="mx-auto text-slate-800 mb-4" />
-                  <p className="text-slate-600 font-bold uppercase tracking-widest">Aguardando dados da corretora...</p>
-                </div>
-              )}
-            </div>
-          )}
+              <div className="h-10 w-[1px] bg-white/10"></div>
+              <div className="text-right">
+                 <p className="text-blue-500 text-[9px] font-black uppercase tracking-widest">MANAUS (AM)</p>
+                 <p className="text-xl font-mono font-black text-white tabular-nums tracking-tighter">{manausTime || '--:--:--'}</p>
+              </div>
+           </div>
         </div>
-        
-        <div className="bg-black/20 px-8 py-4 flex justify-between items-center">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-            Protocolo de Segurança Ativo &bull; Criptografia Ponta-a-Ponta
-          </p>
-          <div className="text-[10px] font-bold text-slate-400 uppercase">
-            TOTAL ANALISADO: <span className="text-white">{data.length} CANDLES</span>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <SummaryCard 
+            label="Amostra Analisada" 
+            value={stats.total} 
+            icon={<Activity size={18} />} 
+            colorClass="bg-blue-500"
+            subtitle="TOTAL"
+          />
+          <SummaryCard 
+            label="Qualidade (WinRate)" 
+            value={stats.winRate} 
+            icon={<TrendingUp size={18} />} 
+            colorClass="bg-emerald-500"
+            subtitle="META"
+          />
+          <SummaryCard 
+            label="Fluxo Essencial (Compra)" 
+            value={stats.green} 
+            icon={<ArrowUpCircle size={18} />} 
+            colorClass="bg-emerald-500"
+            subtitle="CALL"
+          />
+          <SummaryCard 
+            label="Fluxo Passivo (Venda)" 
+            value={stats.red} 
+            icon={<ArrowDownCircle size={18} />} 
+            colorClass="bg-red-500"
+            subtitle="PUT"
+          />
+        </div>
+
+        {/* Catalog History Container */}
+        <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden min-h-[500px]">
+          <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+            <div className="flex items-center gap-4">
+               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                  <Activity size={16}/>
+               </div>
+               <div>
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white">Inventário de Ciclos</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase">M1 TIMEFRAME &bull; EUR/USD LIVE</p>
+               </div>
+            </div>
+            
+            <div className="flex gap-4">
+               <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Compra</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Venda</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Doji</span>
+               </div>
+            </div>
+          </div>
+
+          <div className="p-8 flex-1">
+            {loading && data.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[400px] space-y-4">
+                <div className="w-10 h-10 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Acessando Database...</p>
+              </div>
+            ) : (
+              <div 
+                className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15 gap-4"
+                dir="rtl"
+              >
+                {data.map((candle, idx) => (
+                  <div key={`${candle.datetime_mao}-${idx}`} dir="ltr" className="animate-fade-in" style={{animationDelay: `${idx * 0.01}s`}}>
+                    <Candle 
+                      time={candle.datetime_mao} 
+                      color={candle.cor} 
+                    />
+                  </div>
+                ))}
+                
+                {data.length === 0 && !loading && (
+                  <div className="col-span-full py-32 text-center" dir="ltr">
+                    <p className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">Nenhum dado detectado no ciclo atual</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="px-6 py-4 bg-black/20 border-t border-white/5 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Terminal ID: 2026-OTC-EURUSD</span>
+              <span className="h-3 w-[1px] bg-white/5"></span>
+              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Ponta-a-Ponta</span>
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+              Registros Totais: <span className="text-white">{data.length} VELAS</span>
+            </p>
           </div>
         </div>
-      </div>
+      </main>
 
-      <footer className="py-8 border-t border-slate-800/50 flex flex-col items-center gap-2">
-        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">
-          ADVANCED CATALOGER SYSTEMS
-        </p>
-        <p className="text-slate-700 text-[9px] font-bold italic">
-          v4.0.1 Stable Release
-        </p>
+      <footer className="w-full py-8 px-6 mt-auto border-t border-white/5 flex justify-between items-center text-slate-600">
+        <p className="text-[10px] font-black uppercase tracking-[0.4em]">FINANZA PRO CATALOGER &copy; 2026</p>
+        <div className="flex gap-6 text-[9px] font-bold uppercase tracking-widest">
+           <a href="#" className="hover:text-white transition-colors">Termos</a>
+           <a href="#" className="hover:text-white transition-colors">API Status</a>
+           <a href="#" className="hover:text-white transition-colors">Suporte</a>
+        </div>
       </footer>
     </div>
   );
