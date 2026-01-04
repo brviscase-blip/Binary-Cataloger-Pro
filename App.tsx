@@ -174,7 +174,7 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 30) break; 
+      if (detected.length >= 40) break; 
     }
 
     return detected.reverse();
@@ -195,7 +195,6 @@ const App: React.FC = () => {
     };
   }, [displayPatterns]);
 
-  // Lógica de Histórico de Performance (WIN/LOSS baseado nos sinais)
   const performanceHistory = useMemo(() => {
     const outcomes: SignalOutcome[] = [];
     if (displayPatterns.length < 11) return outcomes;
@@ -588,14 +587,14 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Módulo de Performance de Sinais */}
+              {/* Módulo de Assertividade - Espaço Dividido */}
               <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 bg-[#090d16]/40">
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
                    <div className="flex items-center gap-3">
                       <History size={18} className="text-blue-500" />
                       <div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-white">Assertividade</h3>
-                        <p className="text-[9px] font-bold text-slate-500 uppercase">Histórico de Performance</p>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">Histórico em 2 Colunas</p>
                       </div>
                    </div>
                    <div className="flex flex-col items-end">
@@ -604,35 +603,59 @@ const App: React.FC = () => {
                    </div>
                 </div>
 
-                <div className="p-4 flex flex-col gap-2.5 flex-1 overflow-y-auto scrollbar-hide">
+                <div className="p-3 flex-1 overflow-y-auto scrollbar-hide">
                   {performanceHistory.length > 0 ? (
-                    <div className="space-y-2.5">
-                      {performanceHistory.map((outcome) => (
-                        <div key={outcome.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-all group">
-                           <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                {outcome.type.slice(0,1)}
-                              </div>
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-[11px] font-black tracking-tight ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {outcome.type === 'WIN' ? 'VITÓRIA' : 'DERROTA'}
-                                  </span>
-                                  <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase ${outcome.cycleType === 'AZUL' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'}`}>
-                                    Ciclo {outcome.cycleType}
-                                  </span>
+                    <div className="grid grid-cols-2 gap-3 h-full">
+                      {/* Lado Esquerdo - Azul */}
+                      <div className="flex flex-col gap-2 p-2 rounded-xl border border-blue-500/10 bg-blue-500/[0.02] relative">
+                         <div className="flex items-center justify-between mb-1 px-1">
+                            <span className="text-[8px] font-black uppercase text-blue-500/60 tracking-widest">Lado Azul</span>
+                            <div className="w-1 h-1 rounded-full bg-blue-500/40" />
+                         </div>
+                         <div className="flex flex-col gap-2">
+                           {performanceHistory.slice(0, 5).map((outcome) => (
+                             <div key={outcome.id} className="flex flex-col bg-black/40 p-2 rounded-lg border border-white/5 hover:border-white/10 transition-all">
+                                <div className="flex items-center justify-between">
+                                  <div className={`w-6 h-6 rounded flex items-center justify-center text-[9px] font-black border ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                    {outcome.type.slice(0,1)}
+                                  </div>
+                                  <span className="text-[8px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</span>
                                 </div>
-                                <span className="text-[8px] font-bold text-slate-600 uppercase tabular-nums">Sinal: {outcome.signalName}</span>
-                              </div>
-                           </div>
-                           <div className="text-right">
-                              <p className="text-[9px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</p>
-                           </div>
-                        </div>
-                      ))}
+                                <div className="mt-1.5 flex items-center justify-between">
+                                  <span className={`text-[9px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>{outcome.type}</span>
+                                  <span className="text-[7px] font-bold text-slate-600 uppercase">{outcome.signalName}</span>
+                                </div>
+                             </div>
+                           ))}
+                         </div>
+                      </div>
+
+                      {/* Lado Direito - Vermelho */}
+                      <div className="flex flex-col gap-2 p-2 rounded-xl border border-red-500/10 bg-red-500/[0.02] relative">
+                         <div className="flex items-center justify-between mb-1 px-1">
+                            <div className="w-1 h-1 rounded-full bg-red-500/40" />
+                            <span className="text-[8px] font-black uppercase text-red-500/60 tracking-widest">Lado Vermelho</span>
+                         </div>
+                         <div className="flex flex-col gap-2">
+                           {performanceHistory.slice(5, 10).map((outcome) => (
+                             <div key={outcome.id} className="flex flex-col bg-black/40 p-2 rounded-lg border border-white/5 hover:border-white/10 transition-all">
+                                <div className="flex items-center justify-between">
+                                  <div className={`w-6 h-6 rounded flex items-center justify-center text-[9px] font-black border ${outcome.type === 'WIN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                    {outcome.type.slice(0,1)}
+                                  </div>
+                                  <span className="text-[8px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</span>
+                                </div>
+                                <div className="mt-1.5 flex items-center justify-between">
+                                  <span className={`text-[9px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>{outcome.type}</span>
+                                  <span className="text-[7px] font-bold text-slate-600 uppercase">{outcome.signalName}</span>
+                                </div>
+                             </div>
+                           ))}
+                         </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center opacity-20 flex-1">
+                    <div className="flex flex-col items-center justify-center opacity-20 flex-1 h-full">
                        <Target size={32} className="mb-2 text-slate-700" />
                        <span className="text-[9px] font-black uppercase tracking-[0.2em]">Sincronizando Histórico...</span>
                     </div>
