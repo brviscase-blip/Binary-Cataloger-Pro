@@ -190,7 +190,7 @@ const App: React.FC = () => {
     return (
       <div className={`grid gap-2 ${isPatternGrid 
         ? 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10' 
-        : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-10 2xl:grid-cols-12'}`}>
+        : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-10 2xl:grid-cols-10'}`}>
         {items.map((item, idx) => {
           const itemTime = item.datetime_mao || item.time;
           const itemColor = item.type ? (item.type === 'AZUL' ? 'AZUL' : 'ROSA') : item.cor;
