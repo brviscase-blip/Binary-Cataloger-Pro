@@ -19,13 +19,23 @@ import {
   LayoutGrid,
   BellRing,
   ArrowRightCircle,
-  Shuffle
+  Shuffle,
+  Target,
+  Trophy,
+  History
 } from 'lucide-react';
 
 interface PatternResult {
   time: string;
   type: 'AZUL' | 'ROSA';
   cor?: string;
+}
+
+interface SignalOutcome {
+  id: string;
+  time: string;
+  type: 'WIN' | 'LOSS';
+  signalName: string;
 }
 
 const App: React.FC = () => {
@@ -163,16 +173,116 @@ const App: React.FC = () => {
         type: isContinuity ? 'AZUL' : 'ROSA' 
       });
 
-      if (detected.length >= 10) break;
+      if (detected.length >= 20) break; // Pegamos mais para o histórico
     }
 
     return detected.reverse();
   }, [data]);
 
-  const cycleData = useMemo(() => {
-    if (displayPatterns.length === 0) return { type: null, streak: [] };
+  const patternCounts = useMemo(() => {
+    const activeSet = displayPatterns.slice(-10);
+    const total = activeSet.length;
+    const azul = activeSet.filter(p => p.type === 'AZUL').length;
+    const rosa = activeSet.filter(p => p.type === 'ROSA').length;
     
-    const patterns = [...displayPatterns].reverse(); 
+    return {
+      total,
+      azul,
+      rosa,
+      azulPct: total > 0 ? ((azul / total) * 100).toFixed(0) : '0',
+      rosaPct: total > 0 ? ((rosa / total) * 100).toFixed(0) : '0'
+    };
+  }, [displayPatterns]);
+
+  // Lógica de Histórico de Performance (Badges WIN/LOSS)
+  const performanceHistory = useMemo(() => {
+    const outcomes: SignalOutcome[] = [];
+    if (displayPatterns.length < 11) return outcomes;
+
+    // Analisamos os últimos padrões para ver se houve sinal gerado no passo anterior
+    for (let i = displayPatterns.length - 1; i >= 10; i--) {
+      const currentPattern = displayPatterns[i];
+      const previousWindow = displayPatterns.slice(i - 10, i);
+      
+      const azulPrev = previousWindow.filter(p => p.type === 'AZUL').length;
+      const rosaPrev = previousWindow.filter(p => p.type === 'ROSA').length;
+
+      let target: 'AZUL' | 'ROSA' | null = null;
+      let sName = '';
+
+      // Regra 5x5
+      if (azulPrev === 5 && rosaPrev === 5) {
+        const firstInWindow = previousWindow[0];
+        target = firstInWindow.type === 'AZUL' ? 'ROSA' : 'AZUL';
+        sName = '5x5';
+      } 
+      // Regra Desequilíbrio
+      else if (rosaPrev >= 7) {
+        target = 'AZUL';
+        sName = `${rosaPrev}x${azulPrev}`;
+      } else if (azulPrev >= 7) {
+        target = 'ROSA';
+        sName = `${azulPrev}x${rosaPrev}`;
+      }
+
+      if (target) {
+        outcomes.push({
+          id: `${currentPattern.time}-${i}`,
+          time: currentPattern.time,
+          type: currentPattern.type === target ? 'WIN' : 'LOSS',
+          signalName: sName
+        });
+      }
+
+      if (outcomes.length >= 5) break;
+    }
+
+    return outcomes;
+  }, [displayPatterns]);
+
+  const winCountHistory = useMemo(() => performanceHistory.filter(o => o.type === 'WIN').length, [performanceHistory]);
+  const winRateHistory = useMemo(() => performanceHistory.length > 0 ? ((winCountHistory / performanceHistory.length) * 100).toFixed(0) : '0', [winCountHistory, performanceHistory]);
+
+  const entrySignal = useMemo(() => {
+    const { azul, rosa, total } = patternCounts;
+    if (total < 10) return null;
+
+    if (azul === 5 && rosa === 5) {
+      const referencePattern = displayPatterns[displayPatterns.length - 10]; 
+      const target = (referencePattern.type === 'AZUL' ? 'ROSA' : 'AZUL') as 'AZUL' | 'ROSA';
+      return {
+        target,
+        ratio: '5x5',
+        label: 'QUEBRA DE TENDÊNCIA',
+        icon: <Shuffle size={16} className="animate-pulse" />
+      };
+    }
+
+    if (rosa >= 7) {
+      return { 
+        target: 'AZUL' as const, 
+        ratio: `${rosa}x${azul}`, 
+        label: 'BUSCAR EQUILÍBRIO',
+        icon: <BellRing size={16} className="animate-bounce" />
+      };
+    }
+    if (azul >= 7) {
+      return { 
+        target: 'ROSA' as const, 
+        ratio: `${azul}x${rosa}`, 
+        label: 'BUSCAR EQUILÍBRIO',
+        icon: <BellRing size={16} className="animate-bounce" />
+      };
+    }
+
+    return null;
+  }, [patternCounts, displayPatterns]);
+
+  const cycleData = useMemo(() => {
+    const patternsToCycle = displayPatterns.slice(-10);
+    if (patternsToCycle.length === 0) return { type: null, streak: [] };
+    
+    const patterns = [...patternsToCycle].reverse(); 
     const latestType = patterns[0].type;
     const streak: PatternResult[] = [];
 
@@ -215,60 +325,6 @@ const App: React.FC = () => {
     );
   };
 
-  const patternCounts = useMemo(() => {
-    const total = displayPatterns.length;
-    const azul = displayPatterns.filter(p => p.type === 'AZUL').length;
-    const rosa = displayPatterns.filter(p => p.type === 'ROSA').length;
-    
-    return {
-      total,
-      azul,
-      rosa,
-      azulPct: total > 0 ? ((azul / total) * 100).toFixed(0) : '0',
-      rosaPct: total > 0 ? ((rosa / total) * 100).toFixed(0) : '0'
-    };
-  }, [displayPatterns]);
-
-  // Lógica de Sinal por Desequilíbrio e Cenário 5x5
-  const entrySignal = useMemo(() => {
-    const { azul, rosa, total } = patternCounts;
-    if (total < 10) return null;
-
-    // CENÁRIO 5x5: Analisar a PRIMEIRA vela (sentido esquerda para direita)
-    if (azul === 5 && rosa === 5) {
-      // displayPatterns[0] é a vela da extrema esquerda (mais antiga do set de 10)
-      const referencePattern = displayPatterns[0];
-      // A entrada deve ser para o resultado OPOSTO a ela
-      const target = (referencePattern.type === 'AZUL' ? 'ROSA' : 'AZUL') as 'AZUL' | 'ROSA';
-      return {
-        target,
-        ratio: '5x5',
-        label: 'QUEBRA DE TENDÊNCIA',
-        icon: <Shuffle size={16} className="animate-pulse" />
-      };
-    }
-
-    // Cenários de desequilíbrio: 9x1, 8x2, 7x3
-    if (rosa >= 7) {
-      return { 
-        target: 'AZUL' as const, 
-        ratio: `${rosa}x${azul}`, 
-        label: 'BUSCAR EQUILÍBRIO',
-        icon: <BellRing size={16} className="animate-bounce" />
-      };
-    }
-    if (azul >= 7) {
-      return { 
-        target: 'ROSA' as const, 
-        ratio: `${azul}x${rosa}`, 
-        label: 'BUSCAR EQUILÍBRIO',
-        icon: <BellRing size={16} className="animate-bounce" />
-      };
-    }
-
-    return null;
-  }, [patternCounts, displayPatterns]);
-
   const flowPrevailingStyles = useMemo(() => {
     if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     const green = displayData.filter(c => isGreen(c.cor)).length;
@@ -283,9 +339,10 @@ const App: React.FC = () => {
   }, [displayData]);
 
   const patternPrevailingStyles = useMemo(() => {
-    if (displayPatterns.length === 0) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
-    const azul = displayPatterns.filter(p => p.type === 'AZUL').length;
-    const rosa = displayPatterns.filter(p => p.type === 'ROSA').length;
+    const activeSet = displayPatterns.slice(-10);
+    if (activeSet.length === 0) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
+    const azul = activeSet.filter(p => p.type === 'AZUL').length;
+    const rosa = activeSet.filter(p => p.type === 'ROSA').length;
 
     if (azul > rosa) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
     return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
@@ -458,7 +515,7 @@ const App: React.FC = () => {
               <div className="bg-[#090d16] p-6">
                 {displayPatterns.length > 0 ? (
                   <div className="w-full">
-                    {renderGrid(displayPatterns, true)}
+                    {renderGrid(displayPatterns.slice(-10), true)}
                   </div>
                 ) : (
                   <div className="w-full text-center py-4 text-[10px] uppercase font-black tracking-widest opacity-20">
@@ -539,13 +596,56 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Espaço Reservado (50%) */}
-              <div className="flex-1 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center bg-white/[0.01] group transition-all hover:bg-white/[0.02] hover:border-white/20">
-                <div className="w-12 h-12 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <LayoutGrid size={20} className="text-slate-700" />
+              {/* Novo Módulo de Performance de Sinais */}
+              <div className="flex-1 dashboard-card rounded-2xl flex flex-col overflow-hidden border-white/5 bg-[#090d16]/30">
+                <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                   <div className="flex items-center gap-3">
+                      <History size={18} className="text-blue-500" />
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-white">Assertividade</h3>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase">Histórico Recente</p>
+                      </div>
+                   </div>
+                   <div className="flex flex-col items-end">
+                      <span className="text-lg font-black text-white leading-none">{winRateHistory}%</span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Últimos 5</span>
+                   </div>
                 </div>
-                <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.2em]">Módulo Reservado</p>
-                <p className="text-[8px] font-bold text-slate-800 uppercase mt-1">Pronto para expansão</p>
+
+                <div className="p-6 flex flex-col gap-3 flex-1 justify-center">
+                  {performanceHistory.length > 0 ? (
+                    <div className="space-y-3">
+                      {performanceHistory.map((outcome) => (
+                        <div key={outcome.id} className="flex items-center justify-between bg-black/20 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-all">
+                           <div className="flex items-center gap-3">
+                              <div className={`w-1.5 h-6 rounded-full ${outcome.type === 'WIN' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]'}`} />
+                              <div className="flex flex-col">
+                                <span className={`text-[11px] font-black ${outcome.type === 'WIN' ? 'text-emerald-400' : 'text-pink-400'}`}>
+                                  {outcome.type}
+                                </span>
+                                <span className="text-[8px] font-bold text-slate-600 uppercase tabular-nums">Sinal: {outcome.signalName}</span>
+                              </div>
+                           </div>
+                           <span className="text-[9px] font-mono font-bold text-slate-500">{formatPatternTime(outcome.time)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center opacity-20 py-8">
+                       <Target size={24} className="mb-2" />
+                       <span className="text-[9px] font-black uppercase tracking-[0.2em]">Aguardando Sinais</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-auto px-6 py-3 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
+                   <div className="flex gap-1.5">
+                      {performanceHistory.map((o) => (
+                        <div key={`dot-${o.id}`} className={`w-1.5 h-1.5 rounded-full ${o.type === 'WIN' ? 'bg-emerald-500' : 'bg-pink-500'}`} />
+                      ))}
+                   </div>
+                   <Trophy size={14} className="text-slate-700" />
+                </div>
               </div>
             </div>
           </div>
