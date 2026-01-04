@@ -11,7 +11,17 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
     if (!c) return 'bg-slate-500/10 text-slate-400 border-slate-700';
     const normalized = c.toUpperCase().trim();
     
-    // Suporte para variações de Verde (Verde, Verda)
+    // Azul (Continuidade)
+    if (normalized.includes('AZUL') || normalized.includes('CONTINUIDADE')) {
+      return 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.1)]';
+    }
+
+    // Rosa (Reversão)
+    if (normalized.includes('ROSA') || normalized.includes('REVERSAO')) {
+      return 'bg-pink-500/10 text-pink-400 border-pink-500/30 shadow-[0_0_10px_rgba(236,72,153,0.1)]';
+    }
+
+    // Verde
     if (
       normalized.includes('VERD') || 
       normalized.includes('CALL') || 
@@ -23,7 +33,7 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
       return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
     }
     
-    // Suporte para variações de Vermelho (Vermelho, Vermelha)
+    // Vermelho
     if (
       normalized.includes('VERMELH') || 
       normalized.includes('PUT') || 
@@ -38,10 +48,11 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
     return 'bg-slate-500/10 text-slate-400 border-slate-700/50';
   };
 
-  const formatTimeHoursMinutes = (t: string) => {
+  const formatTimeMinutesSeconds = (t: string) => {
     if (!t) return '--:--';
     try {
-      const match = t.match(/(\d{2}):(\d{2})/);
+      // Extrai os minutos e segundos (MM:SS) da string de data/hora
+      const match = t.match(/:(\d{2}):(\d{2})/);
       return match ? `${match[1]}:${match[2]}` : '--:--';
     } catch (e) {
       return '--:--';
@@ -52,12 +63,12 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
     <div 
       className={`
         tag-pill border py-1.5 px-3 flex items-center justify-center 
-        transition-all duration-200 hover:brightness-125
+        transition-all duration-200 hover:brightness-125 cursor-default
         ${getColorStyles(color)}
       `}
     >
-      <span className="font-mono text-[11px] font-black tabular-nums">
-        {formatTimeHoursMinutes(time)}
+      <span className="font-mono text-[11px] font-black tabular-nums tracking-tighter">
+        {formatTimeMinutesSeconds(time)}
       </span>
     </div>
   );
