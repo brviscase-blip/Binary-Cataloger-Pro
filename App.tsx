@@ -63,7 +63,14 @@ const App: React.FC = () => {
         .order('datetime_mao', { ascending: false })
         .limit(100); 
 
-      if (supabaseError) throw supabaseError;
+      if (supabaseError) {
+        // Se houver um erro retornado pelo Supabase, lançamos ele com detalhes
+        const detailedError = new Error(supabaseError.message || 'Erro Desconhecido na API');
+        (detailedError as any).details = supabaseError.details;
+        (detailedError as any).hint = supabaseError.hint;
+        (detailedError as any).code = supabaseError.code;
+        throw detailedError;
+      }
 
       if (candles) {
         setData(candles);
@@ -78,12 +85,24 @@ const App: React.FC = () => {
         setConnectionStatus('online');
       }
     } catch (err: any) {
-      console.error('Supabase Sync Error:', err);
+      // Extração de mensagem de erro amigável e log detalhado
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      console.error('Sync Error Trace:', {
+        message: msg,
+        details: err.details,
+        code: err.code,
+        hint: err.hint,
+        stack: err.stack
+      });
+      
       setConnectionStatus('error');
-      if (err.message?.includes('fetch') || err.name === 'TypeError') {
-        setError('Falha na Conexão: O navegador bloqueou a requisição ou o servidor está inacessível.');
+      
+      if (msg.includes('fetch') || err.name === 'TypeError') {
+        setError('Falha Crítica de Rede: O navegador não conseguiu alcançar o banco de dados. Verifique sua internet ou VPN.');
+      } else if (err.code === '42P01') {
+        setError('Tabela não encontrada no banco de dados.');
       } else {
-        setError(err.message || 'Erro de sincronização.');
+        setError(`Erro de Sincronização: ${msg}`);
       }
     } finally {
       setLoading(false);
@@ -182,7 +201,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
             <div className={`w-2 h-2 rounded-full ${connectionStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              {connectionStatus === 'online' ? 'Conectado' : 'Erro de Link'}
+              {connectionStatus === 'online' ? 'Conectado' : 'Link Interrompido'}
             </span>
           </div>
         </div>
@@ -208,19 +227,19 @@ const App: React.FC = () => {
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 space-y-4">
         
         {error && (
-          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-center justify-between animate-pulse">
+          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-center justify-between animate-fade-in">
             <div className="flex items-center gap-3">
               <AlertCircle size={20} className="text-red-500" />
               <div>
                 <p className="text-xs font-black text-red-400 uppercase tracking-widest">{error}</p>
-                <p className="text-[10px] text-red-400/60 uppercase mt-0.5">Verifique se extensões de Adblock estão desativadas.</p>
+                <p className="text-[10px] text-red-400/60 uppercase mt-0.5 font-bold">Tentando reconectar automaticamente...</p>
               </div>
             </div>
             <button 
               onClick={() => fetchData(true)}
-              className="px-4 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded hover:bg-red-400 transition-colors"
+              className="px-4 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-red-500 transition-colors shadow-lg shadow-red-500/20"
             >
-              Tentar Novamente
+              Forçar Recarregamento
             </button>
           </div>
         )}
