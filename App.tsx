@@ -234,12 +234,12 @@ const App: React.FC = () => {
     const { azul, rosa, total } = patternCounts;
     if (total < 10) return null;
 
-    // Cenário 5x5: Analisar o último resultado e entrar no oposto
+    // CENÁRIO 5x5: Analisar a PRIMEIRA vela (sentido esquerda para direita)
     if (azul === 5 && rosa === 5) {
-      // O displayPatterns está em ordem cronológica (index 9 é o mais recente)
-      const lastPattern = displayPatterns[displayPatterns.length - 1];
-      // Fix: Applied type casting to the literal result instead of the variable reference 'as const'
-      const target = (lastPattern.type === 'AZUL' ? 'ROSA' : 'AZUL') as 'AZUL' | 'ROSA';
+      // displayPatterns[0] é a vela da extrema esquerda (mais antiga do set de 10)
+      const referencePattern = displayPatterns[0];
+      // A entrada deve ser para o resultado OPOSTO a ela
+      const target = (referencePattern.type === 'AZUL' ? 'ROSA' : 'AZUL') as 'AZUL' | 'ROSA';
       return {
         target,
         ratio: '5x5',
