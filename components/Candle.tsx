@@ -11,8 +11,9 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
     if (!c) return 'bg-slate-500/10 text-slate-400 border-slate-700';
     const normalized = c.toUpperCase().trim();
     
+    // Suporte para variações de Verde (Verde, Verda)
     if (
-      normalized.includes('VERDE') || 
+      normalized.includes('VERD') || 
       normalized.includes('CALL') || 
       normalized.includes('WIN') || 
       normalized.includes('ALTA') || 
@@ -22,8 +23,9 @@ const Candle: React.FC<CandleProps> = ({ time, color }) => {
       return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
     }
     
+    // Suporte para variações de Vermelho (Vermelho, Vermelha)
     if (
-      normalized.includes('VERMELHO') || 
+      normalized.includes('VERMELH') || 
       normalized.includes('PUT') || 
       normalized.includes('LOSS') || 
       normalized.includes('BAIXA') || 
