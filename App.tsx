@@ -257,6 +257,18 @@ const App: React.FC = () => {
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{connectionStatus === 'online' ? 'Conectado' : 'Link Offline'}</span>
           </div>
         </div>
+
+        {/* Novo local do Relógio na Barra de Navegação */}
+        <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white/[0.03] rounded-lg border border-white/5">
+          <Clock size={14} className="text-blue-500" />
+          <div className="flex flex-col items-start leading-none">
+            <span className="text-[7px] font-black text-blue-500/70 uppercase tracking-widest mb-0.5">Manaus</span>
+            <span className="text-sm font-mono font-black text-white tabular-nums tracking-tighter">
+              {manausTime || '--:--:--'}
+            </span>
+          </div>
+        </div>
+
         <div className="flex items-center gap-4">
           <button onClick={() => setIsHeaderVisible(false)} className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 border border-white/10 transition-colors group">
             <Pin size={18} />
@@ -288,11 +300,9 @@ const App: React.FC = () => {
               <div className="progress-bar"><div className="progress-fill bg-slate-500" style={{ width: `${(stats.red/stats.total)*100}%` }}></div></div>
             </div>
           </div>
-          <div className="flex items-center gap-8 pl-6 border-l border-white/5">
-            <div className="text-right">
-              <p className="text-blue-500 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center justify-end gap-1"><Clock size={8}/> Manaus</p>
-              <p className="text-xl font-mono font-black text-white tabular-nums tracking-tighter">{manausTime || '--:--:--'}</p>
-            </div>
+          {/* Espaço anteriormente ocupado pelo relógio agora é removido para focar na métrica */}
+          <div className="flex items-center gap-4 pl-6 border-l border-white/5 opacity-50">
+            <Target size={20} className="text-white/20" />
           </div>
         </div>
 
