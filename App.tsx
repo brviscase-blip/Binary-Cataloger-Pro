@@ -346,10 +346,6 @@ const App: React.FC = () => {
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[500px] max-h-[700px] scroll-smooth">
               {loading && data.length === 0 ? <div className="text-center p-20 text-[10px] uppercase font-black tracking-widest opacity-30 animate-pulse">Sincronizando...</div> : renderGrid(displayData)}
             </div>
-            <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest">
-              <span>ANTIGA: TOP-LEFT | RECENTE: BOTTOM-RIGHT</span>
-              <span>10 COLUNAS FIXAS</span>
-            </div>
           </div>
 
           <div className="flex flex-col gap-4 h-full">
@@ -388,7 +384,7 @@ const App: React.FC = () => {
               </div>
               
               <div className="bg-[#090d16]">
-                <div className="px-6 h-[60px] flex items-center">
+                <div className="px-6 h-[75px] flex items-center">
                   {displayPatterns.length > 0 ? (
                     <div className="w-full">
                       {renderGrid(displayPatterns, true)}
@@ -399,20 +395,6 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
-                <div className="px-6 py-4 flex items-center gap-3 border-t border-white/5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
-                    <span className="text-[9px] font-black uppercase text-slate-500">AZUL (P1)</span>
-                  </div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <span className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]"></span>
-                    <span className="text-[9px] font-black uppercase text-slate-500">ROSA (P2)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-6 py-3 bg-black/40 border-t border-white/5 min-h-[35px]">
               </div>
             </div>
 
