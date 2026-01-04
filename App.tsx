@@ -165,7 +165,6 @@ const App: React.FC = () => {
     return detected.reverse();
   }, [data]);
 
-  // Lógica do Funil de Ciclo
   const cycleData = useMemo(() => {
     if (displayPatterns.length === 0) return { type: null, streak: [] };
     
@@ -259,10 +258,18 @@ const App: React.FC = () => {
 
   const formatPatternTime = (t: string) => {
     if (!t) return '--:--';
-    const parts = t.split(' ');
-    const time = parts[1] || parts[0];
-    const hm = time.split(':');
-    return `${hm[0]}:${hm[1]}`;
+    try {
+      // Trata tanto o formato com espaço ("YYYY-MM-DD HH:MM:SS") 
+      // quanto o formato ISO ("YYYY-MM-DDTHH:MM:SS")
+      const timePart = t.includes('T') ? t.split('T')[1] : (t.includes(' ') ? t.split(' ')[1] : t);
+      const parts = timePart.split(':');
+      if (parts.length >= 2) {
+        return `${parts[0].slice(-2).padStart(2, '0')}:${parts[1].slice(0, 2).padStart(2, '0')}`;
+      }
+      return '--:--';
+    } catch (e) {
+      return '--:--';
+    }
   };
 
   return (
