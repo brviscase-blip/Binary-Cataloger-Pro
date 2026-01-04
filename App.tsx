@@ -11,8 +11,7 @@ import {
   Clock,
   Target,
   Zap,
-  ChevronDown,
-  AlertCircle
+  ChevronDown
 } from 'lucide-react';
 
 interface PatternResult {
@@ -70,7 +69,7 @@ const App: React.FC = () => {
         .from('eurusd_otc_completo')
         .select('datetime_mao, cor')
         .order('datetime_mao', { ascending: false })
-        .limit(300); // Buffer aumentado para garantir encontrar os últimos 10 padrões
+        .limit(300);
 
       if (supabaseError) throw new Error(supabaseError.message);
 
@@ -125,15 +124,10 @@ const App: React.FC = () => {
     );
   };
 
-  /**
-   * Catalogação de trás para frente (Padrão Contínuo):
-   * Analisa cada candle individualmente para garantir que nenhum padrão seja perdido.
-   */
   const displayPatterns = useMemo(() => {
     const detected: PatternResult[] = [];
     if (data.length < 5) return detected;
 
-    // Percorre cada candle como potencial entrada
     for (let i = data.length - 1; i >= 4; i--) {
       const entry = data[i];
       const confirm = data[i - 1];
@@ -141,20 +135,15 @@ const App: React.FC = () => {
       const seq2 = data[i - 3];
       const seq1 = data[i - 4];
 
-      // 1. Validação de Sequência (C1 e C2 iguais)
       const isSequence = (isGreen(seq1.cor) && isGreen(seq2.cor)) || (isRed(seq1.cor) && isRed(seq2.cor));
       if (!isSequence) continue;
 
-      // 2. Validação de Correção (C3 diferente de C2)
       const isCorrection = isGreen(correction.cor) !== isGreen(seq2.cor) && !isDoji(correction.cor);
       if (!isCorrection) continue;
 
-      // 3. Validação de Confirmação (C4 igual a C3)
       const isConfirmation = isGreen(confirm.cor) === isGreen(correction.cor);
       if (!isConfirmation) continue;
 
-      // 4. Determinação do Resultado (C5 / Entry)
-      // AZUL se continuar a cor da confirmação. ROSA se reverter.
       const isContinuo = isGreen(entry.cor) === isGreen(confirm.cor);
       
       detected.push({ 
@@ -193,7 +182,9 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
       {!isHeaderVisible && (
-        <button onClick={() => setIsHeaderVisible(true)} className="fixed top-4 right-6 z-[100] w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-xl shadow-blue-500/30 border border-blue-400/50 hover:bg-blue-500 transition-all hover:scale-105"><ChevronDown size={20} /></button>
+        <button onClick={() => setIsHeaderVisible(true)} className="fixed top-4 right-6 z-[100] w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-xl shadow-blue-500/30 border border-blue-400/50 hover:bg-blue-500 transition-all hover:scale-105">
+          <ChevronDown size={20} />
+        </button>
       )}
 
       <nav className={`h-16 border-b border-white/5 bg-[#0a0e1a] px-6 flex items-center justify-between sticky top-0 z-50 transition-all duration-500 ${!isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
@@ -211,12 +202,14 @@ const App: React.FC = () => {
           <button onClick={() => fetchData(true)} className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-lg text-slate-400 border border-white/10 hover:text-white transition-colors">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /><span className="text-[10px] font-black uppercase tracking-widest">Atualizar</span>
           </button>
-          <button onClick={() => setIsHeaderVisible(false)} className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 border border-white/10 transition-colors group"><Pin size={18} /></button>
+          <button onClick={() => setIsHeaderVisible(false)} className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 border border-white/10 transition-colors group">
+            <Pin size={18} />
+          </button>
         </div>
       </nav>
 
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 space-y-4">
-        <div className={`dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] guide-pink transition-all duration-500 origin-top ${!isHeaderVisible ? 'scale-y-0 h-0 p-0 m-0 opacity-0 overflow-hidden' : 'scale-y-100 opacity-100'}`}>
+        <div className={`dashboard-card rounded-xl p-4 flex flex-col xl:flex-row items-center gap-6 bg-white/[0.02] transition-all duration-500 origin-top ${!isHeaderVisible ? 'scale-y-0 h-0 p-0 m-0 opacity-0 overflow-hidden' : 'scale-y-100 opacity-100'}`}>
           <div className="flex flex-col min-w-[200px] border-r border-white/5 pr-6">
             <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest mb-1 flex items-center gap-2">— TERMINAL 2026 <Target size={10} className="text-blue-400" /></span>
             <h2 className="text-lg font-black text-white uppercase tracking-tight">Fluxo EUR/USD</h2>
@@ -240,7 +233,10 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-8 pl-6 border-l border-white/5">
-            <div className="text-right"><p className="text-blue-500 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center justify-end gap-1"><Clock size={8}/> Manaus</p><p className="text-xl font-mono font-black text-white tabular-nums tracking-tighter">{manausTime || '--:--:--'}</p></div>
+            <div className="text-right">
+              <p className="text-blue-500 text-[8px] font-black uppercase tracking-widest mb-1 flex items-center justify-end gap-1"><Clock size={8}/> Manaus</p>
+              <p className="text-xl font-mono font-black text-white tabular-nums tracking-tighter">{manausTime || '--:--:--'}</p>
+            </div>
           </div>
         </div>
 
@@ -262,7 +258,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden h-full border-pink-500/10 transition-all">
-            <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] guide-pink">
+            <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${patternPrevailingStyles}`}><Zap size={20}/></div>
                 <div>
