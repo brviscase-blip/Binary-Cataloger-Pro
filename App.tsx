@@ -10,14 +10,12 @@ import {
   Activity, 
   ArrowUpCircle, 
   ArrowDownCircle, 
-  CircleSlash,
-  Clock
+  CircleSlash
 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [data, setData] = useState<CandleData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [manausTime, setManausTime] = useState<string>('');
   const lastSyncSecond = useRef<number>(-1);
   const [stats, setStats] = useState<Stats>({
@@ -52,7 +50,7 @@ const App: React.FC = () => {
       if (candles) {
         setData(candles);
         
-        // Calculate Statistics com detecção robusta de termos
+        // Cálculo de estatísticas
         const total = candles.length;
         const green = candles.filter(c => {
           const v = c.cor.toUpperCase();
@@ -68,10 +66,9 @@ const App: React.FC = () => {
         const winRate = total > 0 ? ((green / (green + red || 1)) * 100).toFixed(1) + '%' : '0%';
 
         setStats({ total, green, red, doji, winRate });
-        setLastUpdate(new Date());
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('Erro ao buscar dados:', err);
     } finally {
       setLoading(false);
     }
@@ -84,17 +81,17 @@ const App: React.FC = () => {
       const seconds = now.getSeconds();
       setManausTime(getManausTime());
 
-      // Sincroniza quando o segundo chega em 01
-      // Usamos uma Ref para garantir que dispare apenas uma vez por minuto no segundo correto
+      // Sincroniza exatamente quando o segundo chega em 01
+      // A verificação lastSyncSecond evita disparos múltiplos no mesmo segundo
       if (seconds === 1 && lastSyncSecond.current !== 1) {
-        fetchData(false); // Sincroniza sem mostrar o skeleton (atualização em background)
+        fetchData(false); // Atualização silenciosa
       }
       lastSyncSecond.current = seconds;
     }, 1000);
     return () => clearInterval(timer);
   }, [getManausTime, fetchData]);
 
-  // Busca inicial
+  // Busca inicial ao carregar o app
   useEffect(() => {
     fetchData(true);
   }, [fetchData]);
@@ -102,7 +99,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in bg-[#0f172a]">
       {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-800/20 p-6 rounded-2xl border border-slate-700/30 backdrop-blur-md">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-800/10 p-6 rounded-2xl border border-slate-700/20 backdrop-blur-md">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-emerald-400 font-bold tracking-widest text-[10px] uppercase">
             <span className="relative flex h-2 w-2">
@@ -117,18 +114,15 @@ const App: React.FC = () => {
           <p className="text-slate-400 text-sm font-medium">Análise de fluxo institucional e catalogação de ciclos.</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-8">
-          {/* Relógio Manaus */}
-          <div className="text-right">
-            <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.2em] mb-1">Manaus (AM)</p>
-            <div className="flex items-center gap-2 justify-end">
-              <p className="text-white font-mono text-2xl font-black tabular-nums">{manausTime || '--:--:--'}</p>
-            </div>
+        <div className="text-right">
+          <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.2em] mb-1">Manaus (AM)</p>
+          <div className="flex items-center gap-2 justify-end">
+            <p className="text-white font-mono text-2xl font-black tabular-nums tracking-wider">{manausTime || '--:--:--'}</p>
           </div>
         </div>
       </header>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - 4 colunas (Amostra, Win Rate, Call, Put) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard 
           label="Amostra" 
@@ -192,17 +186,21 @@ const App: React.FC = () => {
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">Sincronizando Terminal...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-4">
+            <div 
+              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-4"
+              dir="rtl"
+            >
               {data.map((candle, idx) => (
-                <Candle 
-                  key={`${candle.datetime_mao}-${idx}`} 
-                  time={candle.datetime_mao} 
-                  color={candle.cor} 
-                />
+                <div key={`${candle.datetime_mao}-${idx}`} dir="ltr">
+                  <Candle 
+                    time={candle.datetime_mao} 
+                    color={candle.cor} 
+                  />
+                </div>
               ))}
               
               {data.length === 0 && !loading && (
-                <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-3xl">
+                <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-3xl" dir="ltr">
                   <Activity size={48} className="mx-auto text-slate-800 mb-4" />
                   <p className="text-slate-600 font-bold uppercase tracking-widest">Aguardando dados da corretora...</p>
                 </div>
@@ -215,7 +213,7 @@ const App: React.FC = () => {
           <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
             Protocolo de Segurança Ativo &bull; Criptografia Ponta-a-Ponta
           </p>
-          <div className="text-[10px] font-bold text-slate-400">
+          <div className="text-[10px] font-bold text-slate-400 uppercase">
             TOTAL ANALISADO: <span className="text-white">{data.length} CANDLES</span>
           </div>
         </div>
