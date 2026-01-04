@@ -70,7 +70,7 @@ const App: React.FC = () => {
         .from('eurusd_otc_completo')
         .select('datetime_mao, cor')
         .order('datetime_mao', { ascending: false })
-        .limit(120); // Busca até 120 registros para o card de Ciclos de Fluxo
+        .limit(120); // Busca até 120 registros para o card de Catalogador de candles
 
       if (supabaseError) throw new Error(supabaseError.message);
 
@@ -145,7 +145,7 @@ const App: React.FC = () => {
     return detected.slice(-10);
   }, [data]);
 
-  // Cor dinâmica baseada no que está visível no card de Fluxo
+  // Cor dinâmica baseada no que está visível no card de Catalogador de candles
   const flowPrevailingStyles = useMemo(() => {
     if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     const green = displayData.filter(c => isGreen(c.cor)).length;
@@ -228,7 +228,7 @@ const App: React.FC = () => {
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-4">
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${flowPrevailingStyles}`}><Activity size={20}/></div>
-                 <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Ciclos de Fluxo</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p></div>
+                 <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Catalogador de candles</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p></div>
               </div>
             </div>
             <div className="p-6 flex-1 bg-[#090d16] overflow-y-auto min-h-[400px] max-h-[600px]">
@@ -248,8 +248,6 @@ const App: React.FC = () => {
                   <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">PADRÃO CONTINUO</h3>
                   <div className="flex items-center gap-2">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p>
-                    <span className="text-[10px] font-black text-white/20">|</span>
-                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">CICLO CONTINUO X REVERSÃO DE CICLO</p>
                   </div>
                 </div>
               </div>
