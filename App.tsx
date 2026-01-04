@@ -14,7 +14,8 @@ import {
   XCircle,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  Hash
 } from 'lucide-react';
 
 interface PatternResult {
@@ -193,6 +194,14 @@ const App: React.FC = () => {
     return detected.reverse();
   }, [data]);
 
+  const patternCounts = useMemo(() => {
+    return {
+      total: displayPatterns.length,
+      azul: displayPatterns.filter(p => p.type === 'AZUL').length,
+      rosa: displayPatterns.filter(p => p.type === 'ROSA').length
+    };
+  }, [displayPatterns]);
+
   const flowPrevailingStyles = useMemo(() => {
     if (displayData.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     const green = displayData.filter(c => isGreen(c.cor)).length;
@@ -286,6 +295,10 @@ const App: React.FC = () => {
               
               <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
                 <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                  <Hash size={12} className="text-blue-500" />
+                  <span className="text-[11px] font-mono font-black text-white">{stats.total}</span>
+                </div>
+                <div className="flex items-center gap-2 px-2 border-r border-white/10">
                   <TrendingUp size={12} className="text-emerald-500" />
                   <span className="text-[11px] font-mono font-black text-emerald-400">{stats.green}</span>
                 </div>
@@ -319,7 +332,7 @@ const App: React.FC = () => {
 
           <div className="flex flex-col gap-4 h-full">
             <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden border-pink-500/10 transition-all shrink-0">
-              <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="px-6 py-5 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between bg-white/[0.02] gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${patternPrevailingStyles}`}><Zap size={20}/></div>
                   <div>
@@ -327,6 +340,21 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">CLIQUE NO RESULTADO PARA RASTREAR NO GRID</p>
                     </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
+                  <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                    <Hash size={12} className="text-slate-400" />
+                    <span className="text-[11px] font-mono font-black text-white">{patternCounts.total}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-2 border-r border-white/10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <span className="text-[11px] font-mono font-black text-blue-400">{patternCounts.azul}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                    <span className="text-[11px] font-mono font-black text-pink-400">{patternCounts.rosa}</span>
                   </div>
                 </div>
               </div>
