@@ -140,6 +140,32 @@ const App: React.FC = () => {
     return detected;
   }, [data]);
 
+  // Logic to determine prevailing color for Flow Card
+  const flowPrevailingStyles = useMemo(() => {
+    if (data.length === 0) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+    const green = data.filter(c => isGreen(c.cor)).length;
+    const red = data.filter(c => isRed(c.cor)).length;
+    const total = data.length;
+    const doji = total - green - red;
+
+    const max = Math.max(green, red, doji);
+    if (max === green && green > red) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+    if (max === red) return 'text-red-500 bg-red-500/10 border-red-500/20';
+    if (max === doji) return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+    return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+  }, [data]);
+
+  // Logic to determine prevailing color for Convergence Card
+  const patternPrevailingStyles = useMemo(() => {
+    if (patterns.length === 0) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
+    const azul = patterns.filter(p => p.type === 'AZUL').length;
+    const rosa = patterns.filter(p => p.type === 'ROSA').length;
+
+    if (azul > rosa) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+    if (rosa >= azul) return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
+    return 'text-pink-500 bg-pink-500/10 border-pink-500/20';
+  }, [patterns]);
+
   return (
     <div className="min-h-screen bg-[#060912] flex flex-col animate-fade-in text-slate-300">
       {!isHeaderVisible && (
@@ -198,7 +224,7 @@ const App: React.FC = () => {
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden shadow-2xl h-full border-emerald-500/10 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20"><Activity size={20}/></div>
+                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${flowPrevailingStyles}`}><Activity size={20}/></div>
                  <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Ciclos de Fluxo</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA (INÍCIO TOP-LEFT)</p></div>
               </div>
             </div>
@@ -214,7 +240,7 @@ const App: React.FC = () => {
           <div className="dashboard-card rounded-2xl flex flex-col overflow-hidden h-full border-pink-500/10 transition-all">
             <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] guide-pink">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 border border-pink-500/20"><Zap size={20}/></div>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${patternPrevailingStyles}`}><Zap size={20}/></div>
                 <div><h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Convergência</h3><p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">SENTIDO DA DIREITA</p></div>
               </div>
             </div>
